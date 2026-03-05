@@ -1,0 +1,143 @@
+{
+  "AI": [
+    {"topic": "Python Basics", "level": "beginner"},
+    {"topic": "Linear Algebra", "level": "beginner"},
+    {"topic": "Statistics", "level": "beginner"},
+    {"topic": "Machine Learning", "level": "intermediate"},
+    {"topic": "Feature Engineering", "level": "intermediate"},
+    {"topic": "Model Evaluation", "level": "intermediate"},
+    {"topic": "Deep Learning", "level": "advanced"},
+    {"topic": "MLOps", "level": "advanced"}
+  ],
+  "Data Science": [
+    {"topic": "Python for Data Analysis", "level": "beginner"},
+    {"topic": "Statistics for Data Science", "level": "beginner"},
+    {"topic": "Data Wrangling with Pandas", "level": "beginner"},
+    {"topic": "Exploratory Data Analysis", "level": "intermediate"},
+    {"topic": "Supervised Learning", "level": "intermediate"},
+    {"topic": "Unsupervised Learning", "level": "intermediate"},
+    {"topic": "Time Series Analysis", "level": "advanced"},
+    {"topic": "Advanced ML", "level": "advanced"},
+    {"topic": "End-to-End DS Project", "level": "advanced"}
+  ],
+  "Web Development": [
+    {"topic": "HTML", "level": "beginner"},
+    {"topic": "CSS", "level": "beginner"},
+    {"topic": "JavaScript", "level": "beginner"},
+    {"topic": "React", "level": "intermediate"},
+    {"topic": "Node.js", "level": "intermediate"},
+    {"topic": "State Management", "level": "intermediate"},
+    {"topic": "System Design", "level": "advanced"},
+    {"topic": "Full-Stack Project", "level": "advanced"}
+  ],
+  "Cloud Computing": [
+    {"topic": "Cloud Fundamentals", "level": "beginner"},
+    {"topic": "Linux & Networking Basics", "level": "beginner"},
+    {"topic": "Cloud Provider Basics (AWS/Azure/GCP)", "level": "beginner"},
+    {"topic": "Virtual Machines & Storage", "level": "intermediate"},
+    {"topic": "Containers & Docker", "level": "intermediate"},
+    {"topic": "Infrastructure as Code (IaC)", "level": "intermediate"},
+    {"topic": "Cloud Security Basics", "level": "advanced"},
+    {"topic": "Scalable Architectures", "level": "advanced"},
+    {"topic": "Cloud Deployment Project", "level": "advanced"}
+  ],
+  "Cybersecurity": [
+    {"topic": "Cybersecurity Fundamentals", "level": "beginner"},
+    {"topic": "Networking Basics for Security", "level": "beginner"},
+    {"topic": "Linux Essentials for Security", "level": "beginner"},
+    {"topic": "OWASP Top 10 Basics", "level": "intermediate"},
+    {"topic": "Threat Modeling & Risk Assessment", "level": "intermediate"},
+    {"topic": "SIEM & Log Analysis", "level": "intermediate"},
+    {"topic": "Incident Response & Playbooks", "level": "advanced"},
+    {"topic": "Penetration Testing Methodology", "level": "advanced"},
+    {"topic": "Capstone: Secure a Web App", "level": "advanced"}
+  ],
+  "DevOps": [
+    {"topic": "DevOps Fundamentals & Culture", "level": "beginner"},
+    {"topic": "Git Fundamentals", "level": "beginner"},
+    {"topic": "Linux & Shell Scripting", "level": "beginner"},
+    {"topic": "CI/CD Pipelines", "level": "intermediate"},
+    {"topic": "Docker & Containerization", "level": "intermediate"},
+    {"topic": "Infrastructure as Code (Terraform)", "level": "intermediate"},
+    {"topic": "Kubernetes Fundamentals", "level": "advanced"},
+    {"topic": "Observability (Logs/Metrics/Tracing)", "level": "advanced"},
+    {"topic": "Project: Deploy a Microservice to K8s", "level": "advanced"}
+  ],
+  "Data Engineering": [
+    {"topic": "SQL Fundamentals", "level": "beginner"},
+    {"topic": "Data Modeling Basics", "level": "beginner"},
+    {"topic": "Python for Data Pipelines", "level": "beginner"},
+    {"topic": "ETL/ELT Concepts", "level": "intermediate"},
+    {"topic": "Orchestration (Airflow/Prefect)", "level": "intermediate"},
+    {"topic": "Streaming (Kafka Basics)", "level": "intermediate"},
+    {"topic": "Lakehouse Architecture", "level": "advanced"},
+    {"topic": "Data Quality & Governance", "level": "advanced"},
+    {"topic": "Project: End-to-End Data Pipeline", "level": "advanced"}
+  ],
+  "Mobile App Development": [
+    {"topic": "Mobile UI Basics", "level": "beginner"},
+    {"topic": "Dart/Kotlin/Swift Fundamentals", "level": "beginner"},
+    {"topic": "Navigation & App Structure", "level": "beginner"},
+    {"topic": "State Management", "level": "intermediate"},
+    {"topic": "REST APIs & Local Storage", "level": "intermediate"},
+    {"topic": "Authentication in Mobile Apps", "level": "intermediate"},
+    {"topic": "Performance & Profiling", "level": "advanced"},
+    {"topic": "Publishing to App Stores", "level": "advanced"},
+    {"topic": "Capstone: Build a Production-Ready App", "level": "advanced"}
+  ],
+  "Blockchain": [
+    {"topic": "Blockchain Fundamentals", "level": "beginner"},
+    {"topic": "Cryptography Basics", "level": "beginner"},
+    {"topic": "Wallets & Transactions", "level": "beginner"},
+    {"topic": "Smart Contracts (Solidity)", "level": "intermediate"},
+    {"topic": "Ethereum & EVM Concepts", "level": "intermediate"},
+    {"topic": "DApp Development (Web3)", "level": "intermediate"},
+    {"topic": "L2 & Scalability Concepts", "level": "advanced"},
+    {"topic": "Smart Contract Security", "level": "advanced"},
+    {"topic": "Project: Build and Deploy a DApp", "level": "advanced"}
+  ],
+  "Game Development": [
+    {"topic": "Game Dev Fundamentals", "level": "beginner"},
+    {"topic": "C#/C++ Basics for Games", "level": "beginner"},
+    {"topic": "Unity/Unreal Basics", "level": "beginner"},
+    {"topic": "2D Game Development", "level": "intermediate"},
+    {"topic": "Game Physics & Animation", "level": "intermediate"},
+    {"topic": "Game Architecture Patterns", "level": "intermediate"},
+    {"topic": "3D Game Development", "level": "advanced"},
+    {"topic": "Multiplayer Networking", "level": "advanced"},
+    {"topic": "Capstone: Publish a Small Game", "level": "advanced"}
+  ],
+  "UI/UX Design": [
+    {"topic": "Design Fundamentals", "level": "beginner"},
+    {"topic": "Typography & Color", "level": "beginner"},
+    {"topic": "Wireframing Basics", "level": "beginner"},
+    {"topic": "Prototyping in Figma", "level": "intermediate"},
+    {"topic": "User Research & Personas", "level": "intermediate"},
+    {"topic": "Usability Testing", "level": "intermediate"},
+    {"topic": "Design Systems", "level": "advanced"},
+    {"topic": "Micro-interactions", "level": "advanced"},
+    {"topic": "Portfolio: Redesign an App", "level": "advanced"}
+  ],
+  "Product Management": [
+    {"topic": "PM Fundamentals", "level": "beginner"},
+    {"topic": "Market & User Research", "level": "beginner"},
+    {"topic": "Writing User Stories", "level": "beginner"},
+    {"topic": "Prioritization (RICE/MoSCoW)", "level": "intermediate"},
+    {"topic": "Roadmapping & OKRs", "level": "intermediate"},
+    {"topic": "Analytics & Experimentation", "level": "intermediate"},
+    {"topic": "Product Strategy", "level": "advanced"},
+    {"topic": "Stakeholder Management", "level": "advanced"},
+    {"topic": "Capstone: Write a Product Spec", "level": "advanced"}
+  ],
+  "AI Engineering": [
+    {"topic": "AI Engineering Fundamentals", "level": "beginner"},
+    {"topic": "Python & ML Libraries", "level": "beginner"},
+    {"topic": "Data Basics for ML", "level": "beginner"},
+    {"topic": "Model Serving (APIs)", "level": "intermediate"},
+    {"topic": "Monitoring & Drift", "level": "intermediate"},
+    {"topic": "Feature Stores", "level": "intermediate"},
+    {"topic": "LLM Engineering Basics", "level": "advanced"},
+    {"topic": "Scaling AI Systems", "level": "advanced"},
+    {"topic": "Project: End-to-End AI Service", "level": "advanced"}
+  ]
+}

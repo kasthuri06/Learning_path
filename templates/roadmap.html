@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}My Roadmap - AI Learning Platform{% endblock %}
+{% block content %}
+<h1 class="app-title mb-2">Learning Roadmap</h1>
+<p class="app-subtitle mb-4">{% if path_name %}{{ path_name }} · {% endif %}Target role: <strong>{{ target_role }}</strong></p>
+
+{% if not roadmap %}
+<div class="app-alert app-alert-info">You have no roadmap yet. <a href="{{ url_for('generate') }}">Generate a learning path</a> first.</div>
+{% else %}
+{% for week in roadmap %}
+<div class="app-roadmap-week card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <span>Week {{ week.week }}</span>
+    {% if week.topic in completed_set %}
+    <span class="app-badge-done">Completed</span>
+    {% else %}
+    <form method="post" action="{{ url_for('mark_completed') }}" class="d-inline">
+      <input type="hidden" name="topic" value="{{ week.topic }}">
+      {% if roadmap_id %}<input type="hidden" name="roadmap_id" value="{{ roadmap_id }}">{% endif %}
+      <button type="submit" class="btn app-btn-success">Mark as Completed</button>
+    </form>
+    {% endif %}
+  </div>
+  <div class="card-body">
+    <h5 class="card-title mb-3">Topic: {{ week.topic }}</h5>
+    {% if roadmap_id and week.topic in milestone_notes %}
+    <div class="app-milestone-notes"><strong>Notes:</strong> {{ milestone_notes[week.topic] }}</div>
+    {% endif %}
+    <div class="mb-2">
+      <label class="app-label">Milestone notes</label>
+      <textarea class="form-control app-input app-milestone-notes-input" rows="2" data-roadmap-id="{{ roadmap_id }}" data-topic="{{ week.topic }}" placeholder="Add notes...">{{ milestone_notes.get(week.topic, '') }}</textarea>
+    </div>
+    <h6 class="app-label mt-3 mb-2">Tasks</h6>
+    <ul class="mb-3 ps-3" style="color: var(--app-text-muted);">
+      {% for task in week.tasks %}
+      <li>{{ task }}</li>
+      {% endfor %}
+    </ul>
+    {% if week.resources %}
+    <h6 class="app-label mb-2">Resources</h6>
+    <ul class="list-unstyled">
+      {% for url in week.resources %}
+      <li>
+        <label class="d-flex align-items-start gap-2">
+          {% if roadmap_id %}
+          <input type="checkbox" class="app-resource-checkbox resource-cb" data-roadmap-id="{{ roadmap_id }}" data-topic="{{ week.topic }}" data-url="{{ url }}" {% if (week.topic, url) in resource_done %}checked{% endif %}>
+          {% endif %}
+          <a href="{{ url }}" target="_blank" rel="noopener">{{ url }}</a>
+        </label>
+      </li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </div>
+</div>
+{% endfor %}
+{% endif %}
+<script>
+(function() {
+  document.querySelectorAll('.resource-cb').forEach(function(cb) {
+    cb.addEventListener('change', function() {
+      var roadmapId = this.getAttribute('data-roadmap-id');
+      var topic = this.getAttribute('data-topic');
+      var url = this.getAttribute('data-url');
+      var completed = this.checked ? 1 : 0;
+      fetch('/api/resource_toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roadmap_id: parseInt(roadmapId), topic: topic, resource_url: url, completed: completed })
+      });
+    });
+  });
+  document.querySelectorAll('.app-milestone-notes-input').forEach(function(ta) {
+    var roadmapId = ta.getAttribute('data-roadmap-id');
+    if (!roadmapId || roadmapId === '') return;
+    ta.addEventListener('blur', function() {
+      var topic = this.getAttribute('data-topic');
+      var notes = this.value.trim();
+      fetch('/api/milestone_notes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roadmap_id: parseInt(roadmapId), topic: topic, notes: notes })
+      });
+    });
+  });
+})();
+</script>
+{% endblock %}

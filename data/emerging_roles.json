@@ -1,0 +1,12 @@
+[
+  {"role": "AI Product Manager", "skills": "Product strategy, ML basics, user research, roadmap planning", "salary_range": "$120k–$180k"},
+  {"role": "ML Engineer", "skills": "Python, TensorFlow/PyTorch, MLOps, data pipelines", "salary_range": "$150k–$220k"},
+  {"role": "AI Research Scientist", "skills": "Deep learning, papers, experimentation, PyTorch", "salary_range": "$180k–$280k"},
+  {"role": "Prompt Engineer", "skills": "LLMs, prompt design, evaluation, API integration", "salary_range": "$100k–$160k"},
+  {"role": "AI Ethics & Governance", "skills": "Policy, fairness, transparency, compliance", "salary_range": "$110k–$170k"},
+  {"role": "Computer Vision Engineer", "skills": "CNNs, detection, segmentation, video ML", "salary_range": "$140k–$200k"},
+  {"role": "NLP Engineer", "skills": "Transformers, NER, embeddings, LLM fine-tuning", "salary_range": "$130k–$190k"},
+  {"role": "AI Solutions Architect", "skills": "Cloud ML, system design, integration", "salary_range": "$160k–$230k"},
+  {"role": "Generative AI Engineer", "skills": "Diffusion models, GANs, multimodal, APIs", "salary_range": "$140k–$210k"},
+  {"role": "AI/ML Ops Engineer", "skills": "CI/CD for ML, monitoring, scaling, Kubernetes", "salary_range": "$130k–$185k"}
+]

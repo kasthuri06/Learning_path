@@ -1,0 +1,138 @@
+{
+  "Python Basics": [
+    "https://www.youtube.com/watch?v=rfscVS0vtbw",
+    "https://www.w3schools.com/python/"
+  ],
+  "Linear Algebra": [
+    "https://www.khanacademy.org/math/linear-algebra",
+    "https://www.youtube.com/watch?v=ZumgfOei0Ak"
+  ],
+  "Statistics": [
+    "https://www.khanacademy.org/math/statistics-probability",
+    "https://www.youtube.com/watch?v=xxpc-HPKN28"
+  ],
+  "Machine Learning": [
+    "https://www.youtube.com/watch?v=GwIo3gDZCVQ",
+    "https://scikit-learn.org/"
+  ],
+  "Feature Engineering": [
+    "https://www.kaggle.com/learn/feature-engineering",
+    "https://scikit-learn.org/stable/modules/preprocessing.html"
+  ],
+  "Model Evaluation": [
+    "https://scikit-learn.org/stable/model_evaluation.html",
+    "https://www.youtube.com/watch?v=H2xY2PcDcCw"
+  ],
+  "Deep Learning": [
+    "https://www.deeplearning.ai/",
+    "https://www.youtube.com/watch?v=aircAruvnKk"
+  ],
+  "MLOps": [
+    "https://ml-ops.org/",
+    "https://www.youtube.com/watch?v=86eOy8J1VNI"
+  ],
+  "Python for Data Analysis": [
+    "https://www.w3schools.com/python/python_pandas.asp",
+    "https://pandas.pydata.org/docs/"
+  ],
+  "Statistics for Data Science": [
+    "https://www.khanacademy.org/math/statistics-probability",
+    "https://www.coursera.org/learn/statistics-for-data-analysis"
+  ],
+  "Data Wrangling with Pandas": [
+    "https://pandas.pydata.org/docs/user_guide/index.html",
+    "https://www.kaggle.com/learn/data-cleaning"
+  ],
+  "Exploratory Data Analysis": [
+    "https://www.kaggle.com/learn/data-visualization",
+    "https://seaborn.pydata.org/"
+  ],
+  "Supervised Learning": [
+    "https://scikit-learn.org/stable/supervised_learning.html",
+    "https://www.youtube.com/watch?v=4PXAztQtoTg"
+  ],
+  "Unsupervised Learning": [
+    "https://scikit-learn.org/stable/unsupervised_learning.html",
+    "https://www.youtube.com/watch?v=8Xhw5IHoYwE"
+  ],
+  "Time Series Analysis": [
+    "https://www.statsmodels.org/stable/tsa.html",
+    "https://www.kaggle.com/learn/time-series"
+  ],
+  "Advanced ML": [
+    "https://www.coursera.org/specializations/machine-learning",
+    "https://scikit-learn.org/stable/"
+  ],
+  "End-to-End DS Project": [
+    "https://www.kaggle.com/docs/notebooks",
+    "https://github.com/drivendata/cookiecutter-data-science"
+  ],
+  "HTML": [
+    "https://www.w3schools.com/html/",
+    "https://developer.mozilla.org/en-US/docs/Web/HTML"
+  ],
+  "CSS": [
+    "https://www.w3schools.com/css/",
+    "https://developer.mozilla.org/en-US/docs/Web/CSS"
+  ],
+  "JavaScript": [
+    "https://www.w3schools.com/js/",
+    "https://javascript.info/"
+  ],
+  "React": [
+    "https://react.dev/learn",
+    "https://www.youtube.com/watch?v=SqcY0GlETpg"
+  ],
+  "Node.js": [
+    "https://nodejs.org/en/docs/",
+    "https://www.youtube.com/watch?v=RLtyhwFtXqQ"
+  ],
+  "State Management": [
+    "https://redux.js.org/",
+    "https://zustand-demo.pmnd.rs/"
+  ],
+  "System Design": [
+    "https://www.youtube.com/watch?v=quLrc3PbnIw",
+    "https://github.com/donnemartin/system-design-primer"
+  ],
+  "Full-Stack Project": [
+    "https://www.freecodecamp.org/",
+    "https://fullstackopen.com/"
+  ],
+  "Cloud Fundamentals": [
+    "https://aws.amazon.com/what-is-cloud-computing/",
+    "https://cloud.google.com/learn/what-is-cloud-computing"
+  ],
+  "Linux & Networking Basics": [
+    "https://www.linux.org/docs/",
+    "https://www.youtube.com/watch?v=QKf7ROyTQMY"
+  ],
+  "Cloud Provider Basics (AWS/Azure/GCP)": [
+    "https://aws.amazon.com/getting-started/",
+    "https://learn.microsoft.com/en-us/azure/"
+  ],
+  "Virtual Machines & Storage": [
+    "https://docs.aws.amazon.com/ec2/",
+    "https://cloud.google.com/compute/docs"
+  ],
+  "Containers & Docker": [
+    "https://docs.docker.com/get-started/",
+    "https://www.youtube.com/watch?v=Gjnup-PuquQ"
+  ],
+  "Infrastructure as Code (IaC)": [
+    "https://www.terraform.io/docs",
+    "https://docs.ansible.com/"
+  ],
+  "Cloud Security Basics": [
+    "https://aws.amazon.com/security/",
+    "https://cloud.google.com/security"
+  ],
+  "Scalable Architectures": [
+    "https://aws.amazon.com/architecture/",
+    "https://www.youtube.com/watch?v=modXC5IWTJI"
+  ],
+  "Cloud Deployment Project": [
+    "https://www.terraform.io/tutorials",
+    "https://docs.docker.com/compose/"
+  ]
+}

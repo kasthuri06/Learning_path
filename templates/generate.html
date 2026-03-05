@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}Generate Learning Path - AI Learning Platform{% endblock %}
+{% block content %}
+<h1 class="app-title mb-2">Generate Learning Path</h1>
+<p class="app-subtitle mb-4">Create a personalized roadmap based on your goals and level.</p>
+
+{% if error %}
+<div class="app-alert app-alert-danger mb-4" role="alert">{{ error }}</div>
+{% endif %}
+
+<div class="app-form-card">
+  <form method="post" action="{{ url_for('generate') }}" class="row g-3" id="generate-form">
+    <div class="col-12">
+      <label for="path_name" class="app-label">Path name</label>
+      <input type="text" class="form-control app-input" id="path_name" name="path_name" placeholder="e.g. ML Engineer path" value="">
+    </div>
+    <div class="col-md-6">
+      <label for="domain" class="app-label">Domain</label>
+      <select class="form-select app-input" id="domain" name="domain" required>
+        {% for d in domains %}
+        <option value="{{ d }}">{{ d }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-6">
+      <label for="current_level" class="app-label">Current Level</label>
+      <select class="form-select app-input" id="current_level" name="current_level" required>
+        <option value="Beginner">Beginner</option>
+        <option value="Intermediate">Intermediate</option>
+        <option value="Advanced">Advanced</option>
+      </select>
+    </div>
+    <div class="col-12">
+      <label for="target_role" class="app-label">Target Role</label>
+      <input type="text" class="form-control app-input" id="target_role" name="target_role" placeholder="e.g. ML Engineer, Data Scientist, Frontend Developer" value="ML Engineer">
+    </div>
+    <div class="col-12">
+      <label for="weekly_study_hours" class="app-label">Weekly Study Hours</label>
+      <input type="range" class="form-range" id="weekly_study_hours" name="weekly_study_hours" min="1" max="20" value="5">
+      <div class="form-text"><span id="hours_value">5</span> hours per week</div>
+    </div>
+    <div class="col-12">
+      <label for="known_skills" class="app-label">Known Skills (comma separated)</label>
+      <textarea class="form-control app-input" id="known_skills" name="known_skills" rows="2" placeholder="e.g. Python, HTML, CSS"></textarea>
+    </div>
+    <div class="col-12 pt-2">
+      <button type="submit" class="btn app-btn-primary" id="generate-btn">Generate Roadmap</button>
+    </div>
+  </form>
+</div>
+
+<div class="modal fade app-progress-modal" id="progressModal" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-body">
+        <h5 class="mb-3">Generating your path</h5>
+        <div id="progress-stage-1" class="app-progress-stage">🔍 Analyzing Requirements</div>
+        <div id="progress-stage-2" class="app-progress-stage">🤖 AI Processing</div>
+        <div id="progress-stage-3" class="app-progress-stage">📚 Curating Resources</div>
+        <div id="progress-stage-4" class="app-progress-stage">✨ Finalizing Path</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<details class="mt-4">
+  <summary class="app-skills-toggle">📊 2025 emerging AI roles – Skills database</summary>
+  <div class="app-skills-body">
+    <table class="table table-sm app-skills-table">
+      <thead><tr><th>Role</th><th>Skills</th><th>Salary range</th></tr></thead>
+      <tbody>
+        {% for r in emerging_roles %}
+        <tr><td>{{ r.role }}</td><td>{{ r.skills }}</td><td>{{ r.salary_range }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</details>
+<script>
+document.getElementById('weekly_study_hours').addEventListener('input', function () {
+  document.getElementById('hours_value').textContent = this.value;
+});
+var form = document.getElementById('generate-form');
+var modal = document.getElementById('progressModal');
+var bsModal = modal ? new bootstrap.Modal(modal) : null;
+form.addEventListener('submit', function(e) {
+  e.preventDefault();
+  if (!bsModal) { form.submit(); return; }
+  bsModal.show();
+  var stages = [1,2,3,4];
+  var idx = 0;
+  function next() {
+    if (idx > 0) document.getElementById('progress-stage-' + stages[idx-1]).classList.remove('active');
+    if (idx < 4) {
+      document.getElementById('progress-stage-' + stages[idx]).classList.add('active');
+      idx++;
+      setTimeout(next, 1500);
+    } else {
+      form.submit();
+    }
+  }
+  setTimeout(next, 300);
+});
+</script>
+{% endblock %}

@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Sign up - AI Learning Platform{% endblock %}
+{% block content %}
+<div class="row justify-content-center py-5">
+  <div class="col-md-5">
+    <div class="text-center mb-4">
+      <div class="app-auth-brand" aria-label="AI learning platform">AI learning platform</div>
+    </div>
+    <div class="app-auth-card">
+      <h1 class="app-auth-title">Sign up</h1>
+      <p class="app-auth-subtitle">Create an account to get started.</p>
+      {% if error %}
+      <div class="app-alert app-alert-danger mb-3" role="alert">{{ error }}</div>
+      {% endif %}
+      <form method="post" action="{{ url_for('signup') }}" id="signup-form">
+        <div class="mb-3">
+          <label for="email" class="app-label">Email</label>
+          <input type="email" class="form-control app-input" id="email" name="email" required placeholder="you@example.com">
+          <div id="username-suggestion" class="form-text mt-1" style="display:none;">Suggested username: <a href="#" id="username-suggestion-link"></a></div>
+        </div>
+        <div class="mb-3">
+          <label for="username" class="app-label">Username</label>
+          <input type="text" class="form-control app-input" id="username" name="username" required autofocus placeholder="Choose a username">
+          <div id="username-feedback" class="form-text mt-1"></div>
+        </div>
+        <div class="mb-4">
+          <label for="password" class="app-label">Password</label>
+          <input type="password" class="form-control app-input" id="password" name="password" required minlength="4" placeholder="At least 4 characters">
+          <div class="password-strength mt-2">
+            <div class="progress" style="height:6px;">
+              <div id="password-strength-bar" class="progress-bar" role="progressbar" style="width:0%; transition: width 0.2s;"></div>
+            </div>
+            <div id="password-strength-text" class="form-text"></div>
+          </div>
+        </div>
+        <button type="submit" class="btn app-btn-primary w-100 mb-2">Sign up</button>
+        <a href="{{ url_for('login') }}" class="btn app-btn-ghost w-100">Log in</a>
+      </form>
+    </div>
+  </div>
+</div>
+<script>
+(function() {
+  var usernameInput = document.getElementById('username');
+  var emailInput = document.getElementById('email');
+  var passwordInput = document.getElementById('password');
+  var feedback = document.getElementById('username-feedback');
+  var suggestionDiv = document.getElementById('username-suggestion');
+  var suggestionLink = document.getElementById('username-suggestion-link');
+  var strengthBar = document.getElementById('password-strength-bar');
+  var strengthText = document.getElementById('password-strength-text');
+  var checkTimeout;
+
+  function checkUsername() {
+    var v = usernameInput.value.trim();
+    if (!v) { feedback.textContent = ''; feedback.className = 'form-text mt-1'; return; }
+    fetch('/api/check-username?username=' + encodeURIComponent(v))
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (d.available) {
+          feedback.textContent = 'Username is available';
+          feedback.className = 'form-text mt-1 text-success';
+        } else {
+          feedback.textContent = 'Username is taken';
+          feedback.className = 'form-text mt-1 text-danger';
+        }
+      });
+  }
+
+  usernameInput.addEventListener('input', function() {
+    clearTimeout(checkTimeout);
+    checkTimeout = setTimeout(checkUsername, 300);
+  });
+  usernameInput.addEventListener('blur', checkUsername);
+
+  emailInput.addEventListener('blur', function() {
+    var email = emailInput.value.trim();
+    if (!email || email.indexOf('@') === -1) { suggestionDiv.style.display = 'none'; return; }
+    var suggested = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '_').slice(0, 20) || 'user';
+    suggestionLink.textContent = suggested;
+    suggestionLink.href = '#'; suggestionLink.onclick = function(e) { e.preventDefault(); usernameInput.value = suggested; checkUsername(); suggestionDiv.style.display = 'none'; };
+    suggestionDiv.style.display = 'block';
+  });
+
+  function scorePassword(p) {
+    var s = 0;
+    if (p.length >= 4) s += 20;
+    if (p.length >= 6) s += 20;
+    if (p.length >= 8) s += 20;
+    if (/[a-z]/.test(p) && /[A-Z]/.test(p)) s += 15;
+    if (/\d/.test(p)) s += 15;
+    if (/[^a-zA-Z0-9]/.test(p)) s += 10;
+    return Math.min(100, s);
+  }
+  passwordInput.addEventListener('input', function() {
+    var s = scorePassword(passwordInput.value);
+    strengthBar.style.width = s + '%';
+    if (s < 40) { strengthBar.className = 'progress-bar bg-danger'; strengthText.textContent = 'Weak'; }
+    else if (s < 70) { strengthBar.className = 'progress-bar bg-warning'; strengthText.textContent = 'Medium'; }
+    else { strengthBar.className = 'progress-bar bg-success'; strengthText.textContent = 'Strong'; }
+  });
+})();
+</script>
+{% endblock %}

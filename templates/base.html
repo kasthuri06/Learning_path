@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}AI Learning Platform{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="app-body" data-theme="dark">
+<script>
+(function(){ var t = localStorage.getItem('app-theme'); if (t === 'light' || t === 'dark') document.body.setAttribute('data-theme', t); })();
+</script>
+  {% if session.get('user_id') %}
+  <nav class="navbar navbar-expand-lg app-navbar">
+    <div class="container">
+      <a class="navbar-brand app-brand" href="{{ url_for('dashboard') }}">AI Learning Platform</a>
+      <button class="navbar-toggler app-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ms-auto gap-2 align-items-center">
+          <li class="nav-item"><a class="nav-link app-nav-link" href="{{ url_for('dashboard') }}">Dashboard</a></li>
+          <li class="nav-item"><a class="nav-link app-nav-link" href="{{ url_for('generate') }}">Generate Path</a></li>
+          <li class="nav-item"><a class="nav-link app-nav-link" href="{{ url_for('roadmap') }}">My Roadmap</a></li>
+          <li class="nav-item">
+            <button type="button" class="btn app-theme-toggle" id="theme-toggle" aria-label="Toggle dark/light theme" title="Toggle theme">🌓</button>
+          </li>
+          <li class="nav-item"><a class="nav-link app-nav-link app-nav-link--logout" href="{{ url_for('logout') }}">Logout</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+  {% endif %}
+  <main class="app-main container py-4">
+    {% block content %}{% endblock %}
+  </main>
+  {% if session.get('user_id') %}
+  <div class="app-chatbot-toggle" id="chatbot-toggle" aria-label="Open chatbot">💬</div>
+  <div class="app-chatbot-popup" id="chatbot-popup" style="display:none;">
+    <div class="app-chatbot-header">
+      <span>AI Assistant</span>
+      <div class="btn-group btn-group-sm">
+        <button type="button" class="btn btn-outline-light active" data-mode="general">General</button>
+        <button type="button" class="btn btn-outline-light" data-mode="path_creation">Path Creation</button>
+        <button type="button" class="btn btn-outline-light" data-mode="research">Research</button>
+      </div>
+      <button type="button" class="btn btn-close btn-close-white btn-sm" id="chatbot-close" aria-label="Close"></button>
+    </div>
+    <div class="app-chatbot-messages" id="chatbot-messages"></div>
+    <div class="app-chatbot-input">
+      <input type="text" class="form-control" id="chatbot-input" placeholder="Type a message..." autocomplete="off">
+      <button type="button" class="btn app-btn-primary" id="chatbot-send">Send</button>
+    </div>
+  </div>
+  {% endif %}
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
