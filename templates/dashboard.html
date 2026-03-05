@@ -203,13 +203,15 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
 (function () {
-  const primary = '#4F46E5';
-  const secondary = '#6366F1';
-  const muted = '#334155';
-  const text = '#F8FAFC';
+  const cs = getComputedStyle(document.body);
+  const primary = cs.getPropertyValue('--app-primary').trim() || '#4F46E5';
+  const secondary = cs.getPropertyValue('--app-secondary').trim() || '#6366F1';
+  const muted = cs.getPropertyValue('--app-text-muted').trim() || '#334155';
+  const text = cs.getPropertyValue('--app-text').trim() || '#F8FAFC';
+  const grid = (cs.getPropertyValue('--app-border').trim() || '#334155') + '55';
 
   const progressCtx = document.getElementById('progressChart').getContext('2d');
-  new Chart(progressCtx, {
+  var progressChart = new Chart(progressCtx, {
     type: 'doughnut',
     data: {
       labels: ['Completed', 'Remaining'],
@@ -222,6 +224,7 @@
     },
     options: {
       responsive: true,
+      maintainAspectRatio: false,
       plugins: {
         legend: { position: 'bottom', labels: { color: text, padding: 16 } }
       }
@@ -230,14 +233,14 @@
 
   const weeklyData = {{ weekly_data | tojson }};
   const weeklyCtx = document.getElementById('weeklyChart').getContext('2d');
-  new Chart(weeklyCtx, {
+  var weeklyChart = new Chart(weeklyCtx, {
     type: 'bar',
     data: {
       labels: weeklyData.map(function (d) { return d.week; }),
       datasets: [{
         label: 'Completions',
         data: weeklyData.map(function (d) { return d.count; }),
-        backgroundColor: 'rgba(99, 102, 241, 0.7)',
+        backgroundColor: secondary + 'B3',
         borderColor: secondary,
         borderWidth: 1
       }]
@@ -245,12 +248,37 @@
     options: {
       responsive: true,
       scales: {
-        y: { beginAtZero: true, ticks: { stepSize: 1, color: text } },
-        x: { ticks: { color: text } }
+        y: { beginAtZero: true, grid: { color: grid }, ticks: { stepSize: 1, color: text } },
+        x: { grid: { color: grid }, ticks: { color: text } }
       },
       plugins: { legend: { display: false } }
     }
   });
+  function rebuildCharts() {
+    try { progressChart.destroy(); weeklyChart.destroy(); } catch (e) {}
+    const cs2 = getComputedStyle(document.body);
+    const secondary2 = cs2.getPropertyValue('--app-secondary').trim() || '#6366F1';
+    const muted2 = cs2.getPropertyValue('--app-text-muted').trim() || '#334155';
+    const text2 = cs2.getPropertyValue('--app-text').trim() || '#F8FAFC';
+    const grid2 = (cs2.getPropertyValue('--app-border').trim() || '#334155') + '55';
+    progressChart = new Chart(progressCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Completed', 'Remaining'],
+        datasets: [{ data: [{{ progress_pct }}, {{ 100 - progress_pct }}], backgroundColor: [secondary2, muted2], borderColor: '#1E293B', borderWidth: 2 }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: text2, padding: 16 } } } }
+    });
+    weeklyChart = new Chart(weeklyCtx, {
+      type: 'bar',
+      data: {
+        labels: weeklyData.map(function (d) { return d.week; }),
+        datasets: [{ label: 'Completions', data: weeklyData.map(function (d) { return d.count; }), backgroundColor: secondary2 + 'B3', borderColor: secondary2, borderWidth: 1 }]
+      },
+      options: { responsive: true, scales: { y: { beginAtZero: true, grid: { color: grid2 }, ticks: { stepSize: 1, color: text2 } }, x: { grid: { color: grid2 }, ticks: { color: text2 } } }, plugins: { legend: { display: false } } }
+    });
+  }
+  document.addEventListener('app-theme-changed', rebuildCharts);
 })();
 </script>
 <script>

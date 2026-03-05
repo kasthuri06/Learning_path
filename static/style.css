@@ -12,7 +12,7 @@
   --app-bg-elevated: #1E293B;
   --app-bg-input: #334155;
   --app-text: #F8FAFC;
-  --app-text-muted: #94A3B8;
+  --app-text-muted: #CBD5E1;
   --app-border: #334155;
   --app-success: #10B981;
   --app-success-soft: rgba(16, 185, 129, 0.15);
@@ -265,6 +265,7 @@ body,
   padding: 1.25rem;
   box-shadow: var(--app-shadow);
   transition: transform var(--app-transition), box-shadow var(--app-transition);
+  color: var(--app-text);
 }
 
 .app-stat-card:hover {
@@ -360,6 +361,12 @@ body,
   text-decoration: underline;
 }
 
+/* Ensure muted text is readable in dark mode */
+.text-muted { color: var(--app-text-muted) !important; }
+.small, small { color: var(--app-text-muted); }
+.card-title, .card-header, .card-body { color: var(--app-text); }
+.app-path-card .card-body { color: var(--app-text); }
+
 /* ----- Auth pages (centered card) ----- */
 .app-auth-card {
   background: var(--app-bg-elevated);
@@ -417,6 +424,7 @@ body,
 .app-chart-card .card-body {
   padding: 1.25rem;
   background: var(--app-bg-elevated);
+  color: var(--app-text);
 }
 
 /* ----- Generate page ----- */
@@ -426,6 +434,7 @@ body,
   border-radius: var(--app-radius);
   padding: 1.75rem;
   box-shadow: var(--app-shadow);
+  color: var(--app-text);
 }
 
 /* ----- Section titles ----- */
@@ -438,7 +447,7 @@ body,
   margin-bottom: 1rem;
 }
 
-[data-theme="light"] { --app-bg: #F1F5F9; --app-bg-elevated: #FFFFFF; --app-bg-input: #E2E8F0; --app-text: #0F172A; --app-text-muted: #64748B; --app-border: #E2E8F0; }
+[data-theme="light"] { --app-bg: #F8FAFC; --app-bg-elevated: #FFFFFF; --app-bg-input: #EDF2F7; --app-text: #0F172A; --app-text-muted: #475569; --app-border: #E2E8F0; }
 .app-theme-toggle { background: transparent; border: 1px solid var(--app-border); color: var(--app-text-muted); padding: 0.35rem 0.6rem; border-radius: var(--app-radius-sm); cursor: pointer; }
 .app-chatbot-toggle { position: fixed; bottom: 1.5rem; right: 1.5rem; width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, var(--app-primary), var(--app-secondary)); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; box-shadow: var(--app-shadow-hover); cursor: pointer; z-index: 1000; }
 .app-chatbot-popup { position: fixed; bottom: 5rem; right: 1.5rem; width: 380px; max-width: calc(100vw - 2rem); max-height: 480px; background: var(--app-bg-elevated); border: 1px solid var(--app-border); border-radius: var(--app-radius); box-shadow: var(--app-shadow-hover); display: flex; flex-direction: column; z-index: 1001; overflow: hidden; }
@@ -452,3 +461,10 @@ body,
 .app-progress-stage.active { opacity: 1; background: rgba(99, 102, 241, 0.15); }
 .app-resource-checkbox { margin-right: 0.5rem; }
 .app-path-card:hover { transform: translateY(-2px); box-shadow: var(--app-shadow-hover); }
+
+/* ----- Light theme tweaks ----- */
+[data-theme="light"] .app-btn-ghost { background: #FFFFFF; border-color: #CBD5E1; color: var(--app-text) !important; }
+[data-theme="light"] .app-btn-ghost:hover { background: #F8FAFC; border-color: #94A3B8; }
+[data-theme="light"] .app-roadmap-week .card-header { background: rgba(0, 0, 0, 0.03); }
+[data-theme="light"] .app-cta { background: rgba(99, 102, 241, 0.08); border-color: rgba(99, 102, 241, 0.25); }
+[data-theme="light"] .app-alert-info { color: #334155; }

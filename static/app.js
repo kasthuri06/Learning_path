@@ -9,6 +9,7 @@
     var next = body.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
     body.setAttribute('data-theme', next);
     localStorage.setItem('app-theme', next);
+    try { document.dispatchEvent(new CustomEvent('app-theme-changed', { detail: { theme: next } })); } catch (e) {}
   });
 })();
 
