@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Weekly Recap{% endblock %}
+{% block content %}
+<h1 class="app-title mb-3">Weekly Recap</h1>
+<div class="app-form-card mb-3">
+  <div class="d-flex justify-content-between align-items-center">
+    <div class="app-subtitle">Completions in the last 7 days</div>
+    <a href="javascript:window.print()" class="btn app-btn-primary btn-sm">Print / Save as PDF</a>
+  </div>
+</div>
+{% if items %}
+<div class="card">
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-sm">
+        <thead><tr><th>Date</th><th>Topic</th><th>Path</th><th>Minutes</th><th>Notes</th></tr></thead>
+        <tbody>
+          {% for r in items %}
+          <tr>
+            <td>{{ r.date }}</td>
+            <td>{{ r.topic }}</td>
+            <td>{{ r.path_name }}</td>
+            <td>{{ r.minutes }}</td>
+            <td>{{ r.notes }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot><tr><th colspan="3" class="text-end">Total</th><th>{{ total_minutes }}</th><th></th></tr></tfoot>
+      </table>
+    </div>
+  </div>
+  </div>
+{% else %}
+<div class="app-alert app-alert-info">No completions in the last week.</div>
+{% endif %}
+{% endblock %}

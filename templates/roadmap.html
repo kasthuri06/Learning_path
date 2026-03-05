@@ -41,8 +41,49 @@
 {% if not roadmap %}
 <div class="app-alert app-alert-info">You have no roadmap yet. <a href="{{ url_for('generate') }}">Generate a learning path</a> first.</div>
 {% else %}
+<div class="app-form-card mb-4">
+  <h6 class="app-label mb-2">Planner</h6>
+  <div class="row g-2 mb-2">
+    <div class="col-md-6">
+      <input type="text" class="form-control app-input" id="topic-search" placeholder="Search topics or resources">
+    </div>
+    <div class="col-md-6 d-flex align-items-center gap-3">
+      <label class="d-flex align-items-center gap-1"><input type="checkbox" id="filter-video"> <span>Video</span></label>
+      <label class="d-flex align-items-center gap-1"><input type="checkbox" id="filter-article"> <span>Article</span></label>
+      <button type="button" class="btn btn-sm app-btn-ghost" id="clear-filters">Clear</button>
+    </div>
+  </div>
+  <div class="row g-3">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">Backlog</div>
+        <div class="card-body" id="planner-backlog" data-list="backlog">
+          {% for w in roadmap %}
+            {% set t = (w.topic or '').strip() %}
+            {% if t and t not in completed_set and t not in weekly_focus_set %}
+              <div class="border rounded p-2 mb-2 planner-item" draggable="true" data-topic="{{ t }}">{{ t }}</div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">This Week</div>
+        <div class="card-body" id="planner-thisweek" data-list="thisweek">
+          {% for w in roadmap %}
+            {% set t = (w.topic or '').strip() %}
+            {% if t and t in weekly_focus_set %}
+              <div class="border rounded p-2 mb-2 planner-item" draggable="true" data-topic="{{ t }}">{{ t }}</div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 {% for week in roadmap %}
-<div class="app-roadmap-week card mb-4">
+<div class="app-roadmap-week card mb-4" data-week="{{ loop.index0 }}">
   <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
     <span>Week {{ week.week }}</span>
     {% if week.topic in completed_set %}
@@ -53,6 +94,12 @@
       {% if roadmap_id %}<input type="hidden" name="roadmap_id" value="{{ roadmap_id }}">{% endif %}
       <button type="submit" class="btn app-btn-success">Mark as Completed</button>
     </form>
+    {% endif %}
+    {% if roadmap_id %}
+    <div class="ms-auto d-flex gap-1">
+      <button type="button" class="btn btn-sm app-btn-ghost btn-week-up" data-roadmap-id="{{ roadmap_id }}" data-index="{{ loop.index0 }}">▲</button>
+      <button type="button" class="btn btn-sm app-btn-ghost btn-week-down" data-roadmap-id="{{ roadmap_id }}" data-index="{{ loop.index0 }}">▼</button>
+    </div>
     {% endif %}
   </div>
   <div class="card-body">
@@ -72,6 +119,16 @@
       <label class="app-label">Milestone notes</label>
       <textarea class="form-control app-input app-milestone-notes-input" rows="2" data-roadmap-id="{{ roadmap_id }}" data-topic="{{ week.topic }}" placeholder="Add notes...">{{ milestone_notes.get(week.topic, '') }}</textarea>
     </div>
+    {% if roadmap_id %}
+    <div class="mb-3">
+      <label class="app-label">Tags</label>
+      <div class="d-flex flex-wrap gap-2 app-tags-list" data-roadmap-id="{{ roadmap_id }}" data-topic="{{ week.topic }}"></div>
+      <div class="d-flex gap-2 mt-2">
+        <input type="text" class="form-control app-input app-tag-input" data-roadmap-id="{{ roadmap_id }}" data-topic="{{ week.topic }}" placeholder="Add a tag">
+        <button type="button" class="btn btn-outline-light app-tag-add-btn" data-roadmap-id="{{ roadmap_id }}" data-topic="{{ week.topic }}">Add</button>
+      </div>
+    </div>
+    {% endif %}
     <h6 class="app-label mt-3 mb-2">Tasks</h6>
     <ul class="mb-3 ps-3" style="color: var(--app-text-muted);">
       {% for task in week.tasks %}
@@ -82,16 +139,37 @@
     <h6 class="app-label mb-2">Resources</h6>
     <ul class="list-unstyled">
       {% for url in week.resources %}
-      <li>
+      {% set is_video = 'youtube.com' in url or 'youtu.be' in url or 'vimeo.com' in url %}
+      <li data-type="{% if is_video %}video{% else %}article{% endif %}" data-url="{{ url }}">
         <label class="d-flex align-items-start gap-2">
           {% if roadmap_id %}
           <input type="checkbox" class="app-resource-checkbox resource-cb" data-roadmap-id="{{ roadmap_id }}" data-topic="{{ week.topic }}" data-url="{{ url }}" {% if (week.topic, url) in resource_done %}checked{% endif %}>
           {% endif %}
           <a href="{{ url }}" target="_blank" rel="noopener">{{ url }}</a>
+          <span class="badge text-bg-secondary">{% if is_video %}video{% else %}article{% endif %}</span>
         </label>
+        {% if roadmap_id %}
+        <div class="d-flex align-items-center gap-2 mt-1">
+          <input type="number" min="1" class="form-control form-control-sm app-input res-duration" style="width:90px" placeholder="min" data-roadmap-id="{{ roadmap_id }}" data-topic="{{ week.topic }}" data-url="{{ url }}">
+          <select class="form-select form-select-sm app-input res-difficulty" style="width:150px" data-roadmap-id="{{ roadmap_id }}" data-topic="{{ week.topic }}" data-url="{{ url }}">
+            <option value="">Difficulty</option>
+            <option value="beginner">Beginner</option>
+            <option value="intermediate">Intermediate</option>
+            <option value="advanced">Advanced</option>
+          </select>
+          <button type="button" class="btn btn-sm app-btn-ghost btn-alt-resource" data-topic="{{ week.topic }}" data-url="{{ url }}">Alternates</button>
+        </div>
+        <div class="mt-1 alternates d-none"></div>
+        {% endif %}
       </li>
       {% endfor %}
     </ul>
+    {% if roadmap_id %}
+    <div class="d-flex gap-2 mb-2">
+      <button type="button" class="btn btn-sm app-btn-ghost btn-all-resources" data-roadmap-id="{{ roadmap_id }}" data-topic="{{ week.topic }}">Mark all done</button>
+      <button type="button" class="btn btn-sm app-btn-ghost btn-add-review" data-roadmap-id="{{ roadmap_id }}" data-topic="{{ week.topic }}">Add 7‑day review</button>
+    </div>
+    {% endif %}
     {% endif %}
     {% if roadmap_id %}
     <div class="mt-3">
@@ -198,6 +276,13 @@
   document.querySelectorAll('.timer-start-btn').forEach(function(btn) {
     btn.addEventListener('click', function() {
       var rid = parseInt(this.getAttribute('data-roadmap-id')); var t = this.getAttribute('data-topic');
+      var card = this.closest('.app-roadmap-week'); var thisWeek = parseInt(card?.getAttribute('data-week') || '0');
+      var blocked = false;
+      document.querySelectorAll('.app-roadmap-week').forEach(function(c){
+        var w = parseInt(c.getAttribute('data-week') || '0');
+        if (w < thisWeek && !c.querySelector('.app-badge-done')) blocked = true;
+      });
+      if (blocked && !confirm('Earlier topics are not completed. Continue?')) return;
       fetch('/api/timer_start', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ roadmap_id: rid, topic: t }) })
         .then(function(){ setTimeout(refreshMinutes, 500); });
     });
@@ -237,6 +322,111 @@
         .then(function(){ if (input) input.value=''; var list = document.querySelector('.app-comments-list[data-roadmap-id="'+rid+'"][data-topic="'+t+'"]'); if (list) loadComments(list); });
     });
   });
+  function loadTags(container) {
+    var rid = container.getAttribute('data-roadmap-id'); var t = container.getAttribute('data-topic');
+    fetch('/api/topic_tags_get?roadmap_id=' + encodeURIComponent(rid) + '&topic=' + encodeURIComponent(t))
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        container.innerHTML = '';
+        (d.tags || []).forEach(function(tag){
+          var span = document.createElement('span'); span.className = 'badge bg-primary-subtle text-primary border';
+          var btn = document.createElement('button'); btn.type='button'; btn.className='btn btn-sm btn-link p-0 ms-2'; btn.textContent='×';
+          span.textContent = tag; span.appendChild(btn);
+          btn.addEventListener('click', function(){
+            fetch('/api/topic_tag_remove', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ roadmap_id: parseInt(rid), topic: t, tag: tag }) })
+              .then(function(){ loadTags(container); });
+          });
+          container.appendChild(span);
+        });
+      });
+  }
+  document.querySelectorAll('.app-tags-list').forEach(loadTags);
+  document.querySelectorAll('.app-tag-add-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var rid = parseInt(this.getAttribute('data-roadmap-id')); var t = this.getAttribute('data-topic');
+      var input = document.querySelector('.app-tag-input[data-roadmap-id="'+rid+'"][data-topic="'+t+'"]');
+      var tag = (input && input.value || '').trim(); if (!tag) return;
+      fetch('/api/topic_tag_add', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ roadmap_id: rid, topic: t, tag: tag }) })
+        .then(function(){ if (input) input.value=''; var list = document.querySelector('.app-tags-list[data-roadmap-id="'+rid+'"][data-topic="'+t+'"]'); if (list) loadTags(list); });
+    });
+  });
+  function loadResourceMeta(topicCard) {
+    var rid = {{ roadmap_id or 'null' }};
+    var t = topicCard.querySelector('.card-title')?.textContent.replace('Topic:','').trim();
+    if (!rid || !t) return;
+    fetch('/api/resource_meta_get?roadmap_id=' + encodeURIComponent(rid) + '&topic=' + encodeURIComponent(t))
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        var map = {};
+        (d.items || []).forEach(function(it){ map[it.resource_url] = it; });
+        topicCard.querySelectorAll('li[data-url]').forEach(function(li){
+          var url = li.getAttribute('data-url'); var row = map[url];
+          if (!row) return;
+          var dur = li.querySelector('.res-duration'); if (dur && row.duration_min) dur.value = row.duration_min;
+          var dif = li.querySelector('.res-difficulty'); if (dif && row.difficulty) dif.value = row.difficulty;
+        });
+      });
+  }
+  document.querySelectorAll('.app-roadmap-week .card-body').forEach(function(card){ loadResourceMeta(card); });
+  document.querySelectorAll('.res-duration').forEach(function(inp){
+    inp.addEventListener('change', function(){
+      var rid = parseInt(this.getAttribute('data-roadmap-id')); var t = this.getAttribute('data-topic'); var url = this.getAttribute('data-url'); var val = this.value;
+      fetch('/api/resource_meta_update', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ roadmap_id: rid, topic: t, resource_url: url, duration_min: val }) });
+    });
+  });
+  document.querySelectorAll('.res-difficulty').forEach(function(sel){
+    sel.addEventListener('change', function(){
+      var rid = parseInt(this.getAttribute('data-roadmap-id')); var t = this.getAttribute('data-topic'); var url = this.getAttribute('data-url'); var val = this.value;
+      fetch('/api/resource_meta_update', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ roadmap_id: rid, topic: t, resource_url: url, difficulty: val }) });
+    });
+  });
+  document.querySelectorAll('.btn-alt-resource').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var t = this.getAttribute('data-topic'); var url = this.getAttribute('data-url'); var li = this.closest('li'); var box = li.querySelector('.alternates');
+      fetch('/api/resource_alternates?topic=' + encodeURIComponent(t) + '&current=' + encodeURIComponent(url))
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+          box.classList.remove('d-none'); box.innerHTML = '';
+          (d.alternates || []).forEach(function(u){
+            var a = document.createElement('a'); a.href = u; a.target = '_blank'; a.rel = 'noopener'; a.textContent = u;
+            var div = document.createElement('div'); div.appendChild(a); box.appendChild(div);
+          });
+          if (!d.alternates || d.alternates.length === 0) box.textContent = 'No alternates found';
+        });
+    });
+  });
+  function applyFilters() {
+    var q = (document.getElementById('topic-search')?.value || '').toLowerCase().trim();
+    var videoOn = document.getElementById('filter-video')?.checked;
+    var articleOn = document.getElementById('filter-article')?.checked;
+    document.querySelectorAll('.app-roadmap-week').forEach(function(card){
+      var title = card.querySelector('.card-title')?.textContent.toLowerCase() || '';
+      var matchQ = !q || title.indexOf(q) !== -1;
+      if (!matchQ) {
+        var links = Array.from(card.querySelectorAll('a')).map(function(a){ return (a.textContent || '').toLowerCase(); });
+        var tags = Array.from(card.querySelectorAll('.app-tags-list span')).map(function(s){ return (s.textContent || '').toLowerCase(); });
+        matchQ = links.concat(tags).some(function(t){ return t.indexOf(q) !== -1; });
+      }
+      var types = new Set(Array.from(card.querySelectorAll('li[data-type]')).map(function(li){ return li.getAttribute('data-type'); }));
+      var typeMatch = true;
+      if (videoOn || articleOn) {
+        typeMatch = (!videoOn || types.has('video')) && (!articleOn || types.has('article'));
+      }
+      card.style.display = (matchQ && typeMatch) ? '' : 'none';
+    });
+  }
+  ['input','change'].forEach(function(ev){
+    document.getElementById('topic-search')?.addEventListener(ev, applyFilters);
+    document.getElementById('filter-video')?.addEventListener(ev, applyFilters);
+    document.getElementById('filter-article')?.addEventListener(ev, applyFilters);
+  });
+  document.getElementById('clear-filters')?.addEventListener('click', function(){
+    var ts = document.getElementById('topic-search'); if (ts) ts.value='';
+    var fv = document.getElementById('filter-video'); if (fv) fv.checked=false;
+    var fa = document.getElementById('filter-article'); if (fa) fa.checked=false;
+    applyFilters();
+  });
+  applyFilters();
 })();
 </script>
 {% endblock %}

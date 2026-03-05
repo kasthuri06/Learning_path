@@ -139,5 +139,71 @@
     {"topic": "LLM Engineering Basics", "level": "advanced"},
     {"topic": "Scaling AI Systems", "level": "advanced"},
     {"topic": "Project: End-to-End AI Service", "level": "advanced"}
+  ],
+  "Arts": [
+    {"topic": "Art History Basics", "level": "beginner"},
+    {"topic": "Design Fundamentals", "level": "beginner"},
+    {"topic": "Creative Writing", "level": "beginner"},
+    {"topic": "Visual Storytelling and Composition", "level": "beginner"},
+    {"topic": "Typography and Layout Principles", "level": "beginner"},
+    {"topic": "Music Theory I", "level": "intermediate"},
+    {"topic": "Photography Basics", "level": "intermediate"},
+    {"topic": "Graphic Design Projects", "level": "intermediate"},
+    {"topic": "Film Studies: Cinematography Basics", "level": "intermediate"},
+    {"topic": "Advanced Composition & Critique", "level": "advanced"},
+    {"topic": "Digital Illustration", "level": "advanced"},
+    {"topic": "Portfolio: Curate and Present Work", "level": "advanced"},
+    {"topic": "Creative Portfolio Website", "level": "advanced"},
+    {"topic": "Capstone: Curate a Themed Exhibition", "level": "advanced"}
+  ],
+  "Science": [
+    {"topic": "Scientific Method & Lab Safety", "level": "beginner"},
+    {"topic": "General Chemistry", "level": "beginner"},
+    {"topic": "Cell Biology", "level": "beginner"},
+    {"topic": "Scientific Writing and Citation", "level": "beginner"},
+    {"topic": "Classical Mechanics", "level": "intermediate"},
+    {"topic": "Genetics", "level": "intermediate"},
+    {"topic": "Electromagnetism", "level": "intermediate"},
+    {"topic": "Data Analysis for Lab Scientists with Python/R", "level": "intermediate"},
+    {"topic": "Experimental Design and Statistics", "level": "intermediate"},
+    {"topic": "Materials Science Fundamentals", "level": "intermediate"},
+    {"topic": "Organic Chemistry", "level": "advanced"},
+    {"topic": "Calculus for Scientists", "level": "advanced"},
+    {"topic": "Bioinformatics Basics", "level": "advanced"},
+    {"topic": "Capstone: Design a Simple Experiment", "level": "advanced"},
+    {"topic": "Capstone: Publish a Mini Research Report", "level": "advanced"}
+  ],
+  "Humanities & Social Sciences": [
+    {"topic": "Critical Thinking and Argumentation", "level": "beginner"},
+    {"topic": "World History: Themes and Methods", "level": "beginner"},
+    {"topic": "Philosophy: Ethics and Technology", "level": "intermediate"},
+    {"topic": "Psychology: Research Methods", "level": "intermediate"},
+    {"topic": "Sociology of Science and Technology", "level": "advanced"}
+  ],
+  "Business & Product": [
+    {"topic": "Project Management Essentials", "level": "beginner"},
+    {"topic": "Marketing Fundamentals and Brand Basics", "level": "beginner"},
+    {"topic": "Entrepreneurship for Creatives/Scientists", "level": "intermediate"},
+    {"topic": "Product Strategy and Roadmapping", "level": "intermediate"},
+    {"topic": "Capstone: Business Plan or Grant Proposal", "level": "advanced"}
+  ],
+  "Communication & Career": [
+    {"topic": "Professional Writing and Presentations", "level": "beginner"},
+    {"topic": "Portfolio/Resume Masterclass", "level": "beginner"},
+    {"topic": "Public Speaking and Storytelling", "level": "intermediate"},
+    {"topic": "Teaching & Mentoring Basics", "level": "intermediate"},
+    {"topic": "Capstone: Conference-Style Talk or Workshop", "level": "advanced"}
+  ],
+  "Mathematics": [
+    {"topic": "Pre-calculus Refresher", "level": "beginner"},
+    {"topic": "Probability & Statistics Foundations", "level": "beginner"},
+    {"topic": "Linear Algebra for Modeling", "level": "intermediate"},
+    {"topic": "Numerical Methods and Simulation", "level": "advanced"}
+  ],
+  "Creative Technology": [
+    {"topic": "Digital Audio Production Basics", "level": "beginner"},
+    {"topic": "3D Modeling for Artists", "level": "intermediate"},
+    {"topic": "Scientific Visualization and Data Storytelling", "level": "intermediate"},
+    {"topic": "AR/VR for Exhibits and Education", "level": "advanced"}
   ]
 }

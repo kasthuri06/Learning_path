@@ -70,7 +70,7 @@ def _table_columns(conn, table):
 
 
 def init_db() -> None:
-    """Create and migrate tables: users (incl. google_id), progress (roadmap_id, notes), user_roadmap (name, target_role, archived), resource_progress, weekly_focus, topic_sessions, comments."""
+    """Create and migrate tables: users (incl. google_id), progress (roadmap_id, notes), user_roadmap (name, target_role, archived), resource_progress, weekly_focus, topic_sessions, comments, topic_tags, resource_meta."""
     with get_db() as conn:
         conn.executescript("""
             CREATE TABLE IF NOT EXISTS users (
@@ -155,6 +155,24 @@ def init_db() -> None:
                 content TEXT NOT NULL,
                 created_at TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS topic_tags (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                roadmap_id INTEGER NOT NULL,
+                topic TEXT NOT NULL,
+                tag TEXT NOT NULL,
+                UNIQUE(user_id, roadmap_id, topic, tag)
+            );
+            CREATE TABLE IF NOT EXISTS resource_meta (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                roadmap_id INTEGER NOT NULL,
+                topic TEXT NOT NULL,
+                resource_url TEXT NOT NULL,
+                duration_min INTEGER,
+                difficulty TEXT,
+                UNIQUE(user_id, roadmap_id, topic, resource_url)
+            );
         """)
         conn.commit()
         for table, col, sql in [
@@ -181,6 +199,8 @@ def init_db() -> None:
             conn.execute("CREATE INDEX IF NOT EXISTS idx_weekly_focus_user_week ON weekly_focus(user_id, week_start)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_topic_sessions_user ON topic_sessions(user_id)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_comments_roadmap ON comments(roadmap_id)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_topic_tags_user ON topic_tags(user_id, roadmap_id, topic)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_resource_meta_user ON resource_meta(user_id, roadmap_id, topic)")
             conn.commit()
         except sqlite3.OperationalError:
             pass
@@ -407,6 +427,14 @@ def get_weekly_focus(user_id: int) -> list:
         ).fetchall()
     return [{"roadmap_id": r["roadmap_id"], "topic": r["topic"], "path_name": (r["name"] or ("Path " + str(r["roadmap_id"])))} for r in rows]
 
+def get_weekly_focus_for(user_id: int, roadmap_id: int) -> set:
+    ws = _week_start()
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT topic FROM weekly_focus WHERE user_id = ? AND roadmap_id = ? AND week_start = ?",
+            (user_id, roadmap_id, ws),
+        ).fetchall()
+    return {r["topic"] for r in rows}
 
 def get_topic_total_minutes(user_id: int, roadmap_id: int, topic: str) -> int:
     with get_db() as conn:
@@ -1036,6 +1064,7 @@ def roadmap(roadmap_id=None):
     completed_set = {c["topic"] for c in completed_list}
     resource_done = get_resource_progress(user_id, roadmap_id) if roadmap_id else set()
     milestone_notes = get_milestone_notes(user_id, roadmap_id) if roadmap_id else {}
+    wf_set = get_weekly_focus_for(user_id, roadmap_id) if roadmap_id else set()
     return render_template(
         "roadmap.html",
         roadmap=roadmap_data,
@@ -1048,6 +1077,7 @@ def roadmap(roadmap_id=None):
         weekly_hours=weekly_hours,
         goal_date=goal_date,
         goal_status=goal_status,
+        weekly_focus_set=wf_set,
     )
 
 
@@ -1247,6 +1277,129 @@ def export_reviews_ics():
     lines.append("END:VCALENDAR")
     return Response("\r\n".join(lines), mimetype="text/calendar", headers={"Content-Disposition": "attachment; filename=reviews.ics"})
 
+@app.route("/export/reviews.csv")
+@require_login
+def export_reviews_csv():
+    user_id = session["user_id"]
+    with get_db() as conn:
+        rows = conn.execute(
+            """
+            SELECT rt.roadmap_id, rt.topic, rt.due_date, rt.completed, ur.name
+            FROM review_tasks rt
+            JOIN user_roadmap ur ON ur.id = rt.roadmap_id
+            WHERE rt.user_id = ?
+            ORDER BY rt.due_date ASC
+            """,
+            (user_id,),
+        ).fetchall()
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(["path_name", "roadmap_id", "topic", "due_date", "completed"])
+    for r in rows:
+        w.writerow([(r["name"] or ("Path " + str(r["roadmap_id"]))), r["roadmap_id"], r["topic"], r["due_date"], r["completed"]])
+    return Response(buf.getvalue(), mimetype="text/csv", headers={"Content-Disposition": "attachment; filename=reviews.csv"})
+
+@app.route("/print/reviews")
+@require_login
+def print_reviews():
+    user_id = session["user_id"]
+    with get_db() as conn:
+        rows = conn.execute(
+            """
+            SELECT rt.roadmap_id, rt.topic, rt.due_date, rt.completed, ur.name
+            FROM review_tasks rt
+            JOIN user_roadmap ur ON ur.id = rt.roadmap_id
+            WHERE rt.user_id = ?
+            ORDER BY rt.due_date ASC
+            """,
+            (user_id,),
+        ).fetchall()
+    items = [{"path_name": (r["name"] or ("Path " + str(r["roadmap_id"]))), "roadmap_id": r["roadmap_id"], "topic": r["topic"], "due_date": r["due_date"], "completed": r["completed"]} for r in rows]
+    return render_template("print_reviews.html", items=items)
+
+@app.route("/recap/weekly")
+@require_login
+def recap_weekly():
+    user_id = session["user_id"]
+    since = (datetime.utcnow().date() - timedelta(days=7)).isoformat()
+    with get_db() as conn:
+        rows = conn.execute(
+            """
+            SELECT p.topic, p.date_completed, p.notes, ur.name, p.roadmap_id
+            FROM progress p
+            LEFT JOIN user_roadmap ur ON ur.id = p.roadmap_id
+            WHERE p.user_id = ? AND p.status = 'completed' AND p.date_completed >= ?
+            ORDER BY p.date_completed DESC
+            """,
+            (user_id, since),
+        ).fetchall()
+    items = []
+    total_minutes = 0
+    for r in rows:
+        m = get_topic_total_minutes(user_id, r["roadmap_id"], r["topic"])
+        total_minutes += m
+        items.append({"topic": r["topic"], "date": r["date_completed"], "notes": r["notes"] or "", "path_name": r["name"] or ("Path " + str(r["roadmap_id"] or "")), "minutes": m})
+    return render_template("weekly_recap.html", items=items, total_minutes=total_minutes)
+
+@app.route("/recap")
+@require_login
+def recap_root():
+    return redirect("/recap/weekly")
+
+@app.route("/api/review_add", methods=["POST"])
+@require_login
+def api_review_add():
+    data = request.get_json() or request.form
+    roadmap_id = data.get("roadmap_id")
+    topic = (data.get("topic") or "").strip()
+    days = data.get("days", 7)
+    if not roadmap_id or not topic:
+        return jsonify({"ok": False}), 400
+    try:
+        rid = int(roadmap_id)
+        days = int(days)
+    except (TypeError, ValueError):
+        return jsonify({"ok": False}), 400
+    due = (datetime.utcnow().date() + timedelta(days=days)).isoformat()
+    user_id = session["user_id"]
+    with get_db() as conn:
+        conn.execute(
+            "INSERT OR IGNORE INTO review_tasks (user_id, roadmap_id, topic, due_date, completed) VALUES (?, ?, ?, ?, 0)",
+            (user_id, rid, topic, due),
+        )
+        conn.commit()
+    return jsonify({"ok": True, "due_date": due})
+
+@app.route("/api/reorder_week", methods=["POST"])
+@require_login
+def api_reorder_week():
+    data = request.get_json() or request.form
+    roadmap_id = data.get("roadmap_id")
+    from_index = data.get("from_index")
+    to_index = data.get("to_index")
+    try:
+        rid = int(roadmap_id)
+        fi = int(from_index)
+        ti = int(to_index)
+    except (TypeError, ValueError):
+        return jsonify({"ok": False}), 400
+    row = get_roadmap_by_id(rid, session["user_id"])
+    if not row:
+        return jsonify({"ok": False}), 404
+    try:
+        rm = json.loads(row["roadmap_json"]) if row["roadmap_json"] else []
+    except (json.JSONDecodeError, TypeError):
+        rm = []
+    if not (0 <= fi < len(rm)) or not (0 <= ti < len(rm)):
+        return jsonify({"ok": False}), 400
+    item = rm.pop(fi)
+    rm.insert(ti, item)
+    for idx, w in enumerate(rm, start=1):
+        w["week"] = idx
+    with get_db() as conn:
+        conn.execute("UPDATE user_roadmap SET roadmap_json = ? WHERE id = ? AND user_id = ?", (json.dumps(rm), rid, session["user_id"]))
+        conn.commit()
+    return jsonify({"ok": True})
 
 @app.route("/api/weekly_focus_toggle", methods=["POST"])
 @require_login
@@ -1410,6 +1563,103 @@ def share_json(token: str):
         abort(404)
     return jsonify({"name": row["name"], "target_role": row["target_role"], "roadmap": json.loads(row["roadmap_json"] or "[]")})
 
+@app.route("/api/topic_tags_get")
+@require_login
+def api_topic_tags_get():
+    roadmap_id = request.args.get("roadmap_id")
+    topic = (request.args.get("topic") or "").strip()
+    try:
+        rid = int(roadmap_id)
+    except (TypeError, ValueError):
+        return jsonify({"tags": []})
+    with get_db() as conn:
+        rows = conn.execute("SELECT tag FROM topic_tags WHERE user_id = ? AND roadmap_id = ? AND topic = ? ORDER BY tag ASC", (session["user_id"], rid, topic)).fetchall()
+    return jsonify({"tags": [r["tag"] for r in rows]})
+
+@app.route("/api/topic_tag_add", methods=["POST"])
+@require_login
+def api_topic_tag_add():
+    data = request.get_json() or request.form
+    roadmap_id = data.get("roadmap_id")
+    topic = (data.get("topic") or "").strip()
+    tag = (data.get("tag") or "").strip()
+    try:
+        rid = int(roadmap_id)
+    except (TypeError, ValueError):
+        return jsonify({"ok": False}), 400
+    if not tag:
+        return jsonify({"ok": False}), 400
+    with get_db() as conn:
+        conn.execute("INSERT OR IGNORE INTO topic_tags (user_id, roadmap_id, topic, tag) VALUES (?, ?, ?, ?)", (session["user_id"], rid, topic, tag))
+        conn.commit()
+    return jsonify({"ok": True})
+
+@app.route("/api/topic_tag_remove", methods=["POST"])
+@require_login
+def api_topic_tag_remove():
+    data = request.get_json() or request.form
+    roadmap_id = data.get("roadmap_id")
+    topic = (data.get("topic") or "").strip()
+    tag = (data.get("tag") or "").strip()
+    try:
+        rid = int(roadmap_id)
+    except (TypeError, ValueError):
+        return jsonify({"ok": False}), 400
+    with get_db() as conn:
+        conn.execute("DELETE FROM topic_tags WHERE user_id = ? AND roadmap_id = ? AND topic = ? AND tag = ?", (session["user_id"], rid, topic, tag))
+        conn.commit()
+    return jsonify({"ok": True})
+
+@app.route("/api/resource_meta_get")
+@require_login
+def api_resource_meta_get():
+    roadmap_id = request.args.get("roadmap_id")
+    topic = (request.args.get("topic") or "").strip()
+    try:
+        rid = int(roadmap_id)
+    except (TypeError, ValueError):
+        return jsonify({"items": []})
+    with get_db() as conn:
+        rows = conn.execute("SELECT resource_url, duration_min, difficulty FROM resource_meta WHERE user_id = ? AND roadmap_id = ? AND topic = ?", (session["user_id"], rid, topic)).fetchall()
+    return jsonify({"items": [{"resource_url": r["resource_url"], "duration_min": r["duration_min"], "difficulty": r["difficulty"]} for r in rows]})
+
+@app.route("/api/resource_meta_update", methods=["POST"])
+@require_login
+def api_resource_meta_update():
+    data = request.get_json() or request.form
+    roadmap_id = data.get("roadmap_id")
+    topic = (data.get("topic") or "").strip()
+    url = (data.get("resource_url") or "").strip()
+    duration = data.get("duration_min")
+    difficulty = (data.get("difficulty") or "").strip() or None
+    try:
+        rid = int(roadmap_id)
+        dur = int(duration) if duration not in (None, "",) else None
+    except (TypeError, ValueError):
+        return jsonify({"ok": False}), 400
+    with get_db() as conn:
+        conn.execute(
+            "INSERT INTO resource_meta (user_id, roadmap_id, topic, resource_url, duration_min, difficulty) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(user_id, roadmap_id, topic, resource_url) DO UPDATE SET duration_min=excluded.duration_min, difficulty=excluded.difficulty",
+            (session["user_id"], rid, topic, url, dur, difficulty),
+        )
+        conn.commit()
+    return jsonify({"ok": True})
+
+def _load_resources_map():
+    try:
+        with (APP_DIR / "resources.json").open("r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+@app.route("/api/resource_alternates")
+@require_login
+def api_resource_alternates():
+    topic = (request.args.get("topic") or "").strip()
+    current = (request.args.get("current") or "").strip()
+    res_map = _load_resources_map()
+    options = [u for u in res_map.get(topic, []) if u != current][:5]
+    return jsonify({"alternates": options})
 
 @app.route("/api/topic_time")
 @require_login

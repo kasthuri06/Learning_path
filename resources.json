@@ -134,5 +134,213 @@
   "Cloud Deployment Project": [
     "https://www.terraform.io/tutorials",
     "https://docs.docker.com/compose/"
+  ],
+  "Art History Basics": [
+    "https://smarthistory.org/guide/",
+    "https://www.khanacademy.org/humanities/art-history"
+  ],
+  "Design Fundamentals": [
+    "https://material.io/design",
+    "https://www.coursera.org/learn/graphic-design"
+  ],
+  "Creative Writing": [
+    "https://www.coursera.org/learn/creative-writing",
+    "https://www.youtube.com/watch?v=V9i2Zs4A9CY"
+  ],
+  "Music Theory I": [
+    "https://www.musictheory.net/lessons",
+    "https://www.coursera.org/learn/elementary-music-theory"
+  ],
+  "Photography Basics": [
+    "https://www.youtube.com/watch?v=7ZVyNjKSr0M",
+    "https://digital-photography-school.com/digital-photography-tips-for-beginners/"
+  ],
+  "Graphic Design Projects": [
+    "https://www.adobe.com/creativecloud.html",
+    "https://www.behance.net/"
+  ],
+  "Advanced Composition & Critique": [
+    "https://owl.purdue.edu/owl/subject_specific_writing/creative_writing/index.html",
+    "https://writingcenter.unc.edu/tips-and-tools/"
+  ],
+  "Digital Illustration": [
+    "https://www.youtube.com/watch?v=zQpZ8i1C3G0",
+    "https://www.skillshare.com/en/browse/digital-illustration"
+  ],
+  "Portfolio: Curate and Present Work": [
+    "https://www.youtube.com/watch?v=PG8C5U1WJrM",
+    "https://www.canva.com/learn/portfolio/"
+  ],
+  "Visual Storytelling and Composition": [
+    "https://www.youtube.com/playlist?list=PLan3SCnsAf-2hYyGQ3n5qC7bR9R2Qwqk5",
+    "https://www.canva.com/learn/visual-storytelling/"
+  ],
+  "Typography and Layout Principles": [
+    "https://practicaltypography.com/",
+    "https://design.tutsplus.com/categories/typography"
+  ],
+  "Film Studies: Cinematography Basics": [
+    "https://www.youtube.com/playlist?list=PLewqxqWzjR7cJx2r3V3R6T6qPp9l0w1hF",
+    "https://nofilmschool.com/cinematography"
+  ],
+  "Creative Portfolio Website": [
+    "https://web.dev/learn/design/",
+    "https://www.netlify.com/guides/build-portfolio-site/"
+  ],
+  "Capstone: Curate a Themed Exhibition": [
+    "https://www.moma.org/learn/moma_learning/",
+    "https://www.canva.com/design-ideas/portfolios/"
+  ],
+  "Scientific Method & Lab Safety": [
+    "https://www.sciencebuddies.org/science-fair-projects/science-fair/introduction-to-the-scientific-method",
+    "https://www.osha.gov/laboratory-safety"
+  ],
+  "General Chemistry": [
+    "https://www.khanacademy.org/science/chemistry",
+    "https://chem.libretexts.org/Bookshelves/General_Chemistry"
+  ],
+  "Cell Biology": [
+    "https://www.khanacademy.org/science/biology/cell-structure-and-function",
+    "https://www.nature.com/subjects/cell-biology"
+  ],
+  "Classical Mechanics": [
+    "https://www.khanacademy.org/science/physics",
+    "https://ocw.mit.edu/courses/8-01sc-classical-mechanics-fall-2016/"
+  ],
+  "Genetics": [
+    "https://www.khanacademy.org/science/biology/heredity",
+    "https://www.yourgenome.org/"
+  ],
+  "Electromagnetism": [
+    "https://ocw.mit.edu/courses/8-02sc-physics-ii-electricity-and-magnetism-fall-2012/",
+    "https://www.youtube.com/watch?v=0nNi8r-Y_xI"
+  ],
+  "Organic Chemistry": [
+    "https://www.khanacademy.org/science/organic-chemistry",
+    "https://ochem.libretexts.org/"
+  ],
+  "Calculus for Scientists": [
+    "https://www.khanacademy.org/math/calculus-1",
+    "https://ocw.mit.edu/courses/18-01sc-single-variable-calculus-fall-2010/"
+  ],
+  "Capstone: Design a Simple Experiment": [
+    "https://www.sciencebuddies.org/science-fair-projects/project-ideas",
+    "https://www.youtube.com/watch?v=5tq8bP5rZPc"
+  ],
+  "Scientific Writing and Citation": [
+    "https://owl.purdue.edu/owl/general_writing/index.html",
+    "https://www.zotero.org/support/quick_start_guide"
+  ],
+  "Data Analysis for Lab Scientists with Python/R": [
+    "https://r4ds.hadley.nz/",
+    "https://pandas.pydata.org/docs/user_guide/index.html"
+  ],
+  "Experimental Design and Statistics": [
+    "https://www.khanacademy.org/math/statistics-probability",
+    "https://openstax.org/details/books/biostatistics"
+  ],
+  "Materials Science Fundamentals": [
+    "https://ocw.mit.edu/courses/materials-science-and-engineering/",
+    "https://www.khanacademy.org/science/chemistry"
+  ],
+  "Bioinformatics Basics": [
+    "https://www.ncbi.nlm.nih.gov/home/learn/",
+    "https://www.coursera.org/specializations/bioinformatics"
+  ],
+  "Capstone: Publish a Mini Research Report": [
+    "https://www.overleaf.com/learn",
+    "https://www.elsevier.com/authors/tools-and-resources"
+  ],
+  "Critical Thinking and Argumentation": [
+    "https://www.coursera.org/learn/critical-thinking-skills",
+    "https://plato.stanford.edu/entries/logic-informal/"
+  ],
+  "World History: Themes and Methods": [
+    "https://www.khanacademy.org/humanities/world-history",
+    "https://www.worldhistory.org/"
+  ],
+  "Philosophy: Ethics and Technology": [
+    "https://www.scu.edu/ethics/",
+    "https://www.edx.org/course/ethics-of-technology"
+  ],
+  "Psychology: Research Methods": [
+    "https://www.coursera.org/learn/psychologyresearch",
+    "https://www.simplypsychology.org/research-methods.html"
+  ],
+  "Sociology of Science and Technology": [
+    "https://en.wikipedia.org/wiki/Science_and_technology_studies",
+    "https://www.britannica.com/topic/sociology-of-science"
+  ],
+  "Project Management Essentials": [
+    "https://www.coursera.org/specializations/google-project-management",
+    "https://www.smartsheet.com/project-management-guide"
+  ],
+  "Marketing Fundamentals and Brand Basics": [
+    "https://academy.hubspot.com/courses/marketing",
+    "https://www.coursera.org/specializations/marketing"
+  ],
+  "Entrepreneurship for Creatives/Scientists": [
+    "https://www.startupschool.org/",
+    "https://www.sba.gov/business-guide/plan-your-business"
+  ],
+  "Product Strategy and Roadmapping": [
+    "https://www.romanpichler.com/blog/",
+    "https://www.atlassian.com/agile/product-management/roadmaps"
+  ],
+  "Capstone: Business Plan or Grant Proposal": [
+    "https://www.sba.gov/business-guide/plan-your-business/write-your-business-plan",
+    "https://grants.nih.gov/grants/how-to-apply-application-guide.html"
+  ],
+  "Professional Writing and Presentations": [
+    "https://www.duarte.com/presentation-skills-resources/",
+    "https://owl.purdue.edu/owl/subject_specific_writing/professional_technical_writing/index.html"
+  ],
+  "Portfolio/Resume Masterclass": [
+    "https://www.canva.com/resumes/templates/",
+    "https://www.linkedin.com/learning/topics/resume-writing"
+  ],
+  "Public Speaking and Storytelling": [
+    "https://www.toastmasters.org/find-a-club",
+    "https://www.ted.com/playlists/86/talks_to_watch_before_a_job_inter"
+  ],
+  "Teaching & Mentoring Basics": [
+    "https://www.coursera.org/learn/learning-how-to-learn",
+    "https://teaching.cornell.edu/resource-library"
+  ],
+  "Capstone: Conference-Style Talk or Workshop": [
+    "https://www.ted.com/read/ted-talks-the-official-ted-guide-to-public-speaking",
+    "https://www.nspe.org/resources/professional-development"
+  ],
+  "Pre-calculus Refresher": [
+    "https://www.khanacademy.org/math/precalculus",
+    "https://ocw.mit.edu/courses/18-05-introduction-to-probability-and-statistics-spring-2014/"
+  ],
+  "Probability & Statistics Foundations": [
+    "https://www.khanacademy.org/math/statistics-probability",
+    "https://openstax.org/details/books/introductory-statistics"
+  ],
+  "Linear Algebra for Modeling": [
+    "https://www.3blue1brown.com/lessons/linear-algebra",
+    "https://ocw.mit.edu/courses/18-06-linear-algebra-spring-2010/"
+  ],
+  "Numerical Methods and Simulation": [
+    "https://ocw.mit.edu/courses/18-085-computational-science-and-engineering-i-fall-2008/",
+    "https://www.scipy.org/"
+  ],
+  "Digital Audio Production Basics": [
+    "https://www.audacityteam.org/help/",
+    "https://www.coursera.org/learn/music-production"
+  ],
+  "3D Modeling for Artists": [
+    "https://www.blender.org/support/tutorials/",
+    "https://polycount.com/categories/technical-talk"
+  ],
+  "Scientific Visualization and Data Storytelling": [
+    "https://matplotlib.org/stable/tutorials/index.html",
+    "https://www.tableau.com/learn/training"
+  ],
+  "AR/VR for Exhibits and Education": [
+    "https://learn.unity.com/",
+    "https://www.coursera.org/specializations/virtual-reality"
   ]
 }
