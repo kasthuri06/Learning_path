@@ -2,7 +2,41 @@
 {% block title %}My Roadmap - AI Learning Platform{% endblock %}
 {% block content %}
 <h1 class="app-title mb-2">Learning Roadmap</h1>
-<p class="app-subtitle mb-4">{% if path_name %}{{ path_name }} · {% endif %}Target role: <strong>{{ target_role }}</strong></p>
+<div class="d-flex flex-column flex-lg-row gap-3 align-items-start align-items-lg-center justify-content-between mb-3">
+  <div>
+    <div class="app-subtitle">{% if path_name %}{{ path_name }} · {% endif %}Target role: <strong>{{ target_role }}</strong></div>
+    {% if goal_status %}
+    <div class="text-muted small mt-1">Expected completed: {{ goal_status.expected_completed }} · Behind by: {{ goal_status.behind_by }}{% if goal_status.days_left is not none %} · Days left: {{ goal_status.days_left }}{% endif %}</div>
+    {% endif %}
+  </div>
+  {% if roadmap_id %}
+  <div class="d-flex flex-wrap gap-2">
+    <button type="button" class="btn btn-sm app-btn-ghost" id="rename-path-btn">Rename</button>
+    <button type="button" class="btn btn-sm app-btn-ghost" id="clone-path-btn">Clone</button>
+    <button type="button" class="btn btn-sm app-btn-ghost" id="share-path-btn">Share link</button>
+    <a class="btn btn-sm app-btn-ghost" href="{{ url_for('export_roadmap_csv', roadmap_id=roadmap_id) }}">Export CSV</a>
+    <a class="btn btn-sm app-btn-primary" target="_blank" href="{{ url_for('print_roadmap', roadmap_id=roadmap_id) }}">Export PDF</a>
+  </div>
+  {% endif %}
+</div>
+
+{% if roadmap_id %}
+<div class="app-form-card mb-4">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-4">
+      <label class="app-label">Goal date</label>
+      <input type="date" class="form-control app-input" id="goal-date" value="{{ goal_date }}">
+    </div>
+    <div class="col-md-4">
+      <label class="app-label">Weekly hours</label>
+      <input type="number" min="1" max="40" class="form-control app-input" id="weekly-hours" value="{{ weekly_hours }}">
+    </div>
+    <div class="col-md-4">
+      <button type="button" class="btn app-btn-primary" id="save-goal-btn" data-roadmap-id="{{ roadmap_id }}">Save goal</button>
+    </div>
+  </div>
+</div>
+{% endif %}
 
 {% if not roadmap %}
 <div class="app-alert app-alert-info">You have no roadmap yet. <a href="{{ url_for('generate') }}">Generate a learning path</a> first.</div>
@@ -23,6 +57,14 @@
   </div>
   <div class="card-body">
     <h5 class="card-title mb-3">Topic: {{ week.topic }}</h5>
+    {% if roadmap_id %}
+    <div class="d-flex flex-wrap gap-2 mb-3">
+      <button type="button" class="btn btn-sm btn-outline-light weekly-focus-btn" data-roadmap-id="{{ roadmap_id }}" data-topic="{{ week.topic }}">This week</button>
+      <button type="button" class="btn btn-sm btn-outline-light timer-start-btn" data-roadmap-id="{{ roadmap_id }}" data-topic="{{ week.topic }}">Start timer</button>
+      <button type="button" class="btn btn-sm btn-outline-light timer-stop-btn" data-topic="{{ week.topic }}">Stop timer</button>
+      <span class="badge bg-secondary-subtle text-light-emphasis ms-2">Time: <span class="topic-minutes" data-roadmap-id="{{ roadmap_id }}" data-topic="{{ week.topic }}">0</span> min</span>
+    </div>
+    {% endif %}
     {% if roadmap_id and week.topic in milestone_notes %}
     <div class="app-milestone-notes"><strong>Notes:</strong> {{ milestone_notes[week.topic] }}</div>
     {% endif %}
@@ -50,6 +92,16 @@
       </li>
       {% endfor %}
     </ul>
+    {% endif %}
+    {% if roadmap_id %}
+    <div class="mt-3">
+      <h6 class="app-label mb-2">Comments</h6>
+      <ul class="list-unstyled app-comments-list" data-roadmap-id="{{ roadmap_id }}" data-topic="{{ week.topic }}"></ul>
+      <div class="d-flex gap-2 mt-2">
+        <input type="text" class="form-control app-input app-comment-input" data-roadmap-id="{{ roadmap_id }}" data-topic="{{ week.topic }}" placeholder="Add a comment">
+        <button type="button" class="btn btn-outline-light app-comment-add-btn" data-roadmap-id="{{ roadmap_id }}" data-topic="{{ week.topic }}">Add</button>
+      </div>
+    </div>
     {% endif %}
   </div>
 </div>
@@ -81,6 +133,108 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ roadmap_id: parseInt(roadmapId), topic: topic, notes: notes })
       });
+    });
+  });
+  var saveGoalBtn = document.getElementById('save-goal-btn');
+  if (saveGoalBtn) {
+    saveGoalBtn.addEventListener('click', function() {
+      var rid = parseInt(this.getAttribute('data-roadmap-id'));
+      var dateEl = document.getElementById('goal-date');
+      var hoursEl = document.getElementById('weekly-hours');
+      var goalDate = dateEl ? dateEl.value : '';
+      var weeklyHours = hoursEl ? parseInt(hoursEl.value || '5') : 5;
+      fetch('/api/update_goal', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ roadmap_id: rid, goal_date: goalDate, weekly_hours: weeklyHours }) })
+        .then(function(r){ return r.json(); })
+        .then(function(d){ if (d.ok) window.location.reload(); });
+    });
+  }
+  var renameBtn = document.getElementById('rename-path-btn');
+  if (renameBtn) {
+    renameBtn.addEventListener('click', function() {
+      var name = prompt('Enter new path name', {{ path_name|tojson }});
+      if (!name) return;
+      fetch('/api/rename_path', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ roadmap_id: {{ roadmap_id or 'null' }}, name: name }) })
+        .then(function(r){ return r.json(); })
+        .then(function(d){ if (d.ok) window.location.reload(); });
+    });
+  }
+  var cloneBtn = document.getElementById('clone-path-btn');
+  if (cloneBtn) {
+    cloneBtn.addEventListener('click', function() {
+      fetch('/api/clone_path', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ roadmap_id: {{ roadmap_id or 'null' }} }) })
+        .then(function(r){ return r.json(); })
+        .then(function(d){ if (d.ok && d.roadmap_id) window.location.href = '/roadmap/' + d.roadmap_id; });
+    });
+  }
+  var shareBtn = document.getElementById('share-path-btn');
+  if (shareBtn) {
+    shareBtn.addEventListener('click', function() {
+      fetch('/api/share_create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ roadmap_id: {{ roadmap_id or 'null' }} }) })
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+          if (d.ok && d.url) {
+            navigator.clipboard && navigator.clipboard.writeText(d.url);
+            alert('Share link copied: ' + d.url);
+          }
+        });
+    });
+  }
+  document.querySelectorAll('.weekly-focus-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var rid = parseInt(this.getAttribute('data-roadmap-id')); var t = this.getAttribute('data-topic');
+      fetch('/api/weekly_focus_toggle', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ roadmap_id: rid, topic: t, in_focus: 1 }) });
+      this.disabled = true; this.textContent = 'Added';
+    });
+  });
+  function refreshMinutes() {
+    document.querySelectorAll('.topic-minutes').forEach(function(span) {
+      var rid = span.getAttribute('data-roadmap-id'); var t = span.getAttribute('data-topic');
+      fetch('/api/topic_time?roadmap_id=' + encodeURIComponent(rid) + '&topic=' + encodeURIComponent(t))
+        .then(function(r){ return r.json(); })
+        .then(function(d){ span.textContent = d.minutes || 0; });
+    });
+  }
+  refreshMinutes();
+  document.querySelectorAll('.timer-start-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var rid = parseInt(this.getAttribute('data-roadmap-id')); var t = this.getAttribute('data-topic');
+      fetch('/api/timer_start', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ roadmap_id: rid, topic: t }) })
+        .then(function(){ setTimeout(refreshMinutes, 500); });
+    });
+  });
+  document.querySelectorAll('.timer-stop-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var t = this.getAttribute('data-topic');
+      fetch('/api/timer_stop', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ topic: t }) })
+        .then(function(){ setTimeout(refreshMinutes, 500); });
+    });
+  });
+  function loadComments(listEl) {
+    var rid = listEl.getAttribute('data-roadmap-id'); var t = listEl.getAttribute('data-topic');
+    fetch('/api/comments?roadmap_id=' + encodeURIComponent(rid) + '&topic=' + encodeURIComponent(t))
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        listEl.innerHTML = '';
+        (d.comments || []).forEach(function(c){
+          var li = document.createElement('li'); li.className = 'py-1 d-flex justify-content-between align-items-center';
+          var text = document.createElement('div'); text.innerHTML = (c.content || '') + ' <span class="text-muted small">(' + c.created_at + ')</span>';
+          var del = document.createElement('button'); del.className = 'btn btn-sm btn-outline-danger'; del.textContent = 'Delete';
+          del.addEventListener('click', function(){
+            fetch('/api/comment_delete', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ comment_id: c.id }) })
+              .then(function(){ loadComments(listEl); });
+          });
+          li.appendChild(text); li.appendChild(del); listEl.appendChild(li);
+        });
+      });
+  }
+  document.querySelectorAll('.app-comments-list').forEach(loadComments);
+  document.querySelectorAll('.app-comment-add-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var rid = parseInt(this.getAttribute('data-roadmap-id')); var t = this.getAttribute('data-topic');
+      var input = document.querySelector('.app-comment-input[data-roadmap-id="'+rid+'"][data-topic="'+t+'"]');
+      var content = (input && input.value || '').trim(); if (!content) return;
+      fetch('/api/comment_add', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ roadmap_id: rid, topic: t, content: content }) })
+        .then(function(){ if (input) input.value=''; var list = document.querySelector('.app-comments-list[data-roadmap-id="'+rid+'"][data-topic="'+t+'"]'); if (list) loadComments(list); });
     });
   });
 })();

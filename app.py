@@ -10,11 +10,16 @@ collapsible skills DB, username check, password strength, theme toggle.
 import json
 import os
 import sqlite3
+import csv
+import io
+import secrets
 from datetime import datetime, timedelta
 from pathlib import Path
 
 from flask import (
     Flask,
+    Response,
+    abort,
     jsonify,
     redirect,
     render_template,
@@ -65,7 +70,7 @@ def _table_columns(conn, table):
 
 
 def init_db() -> None:
-    """Create and migrate tables: users (incl. google_id), progress (roadmap_id, notes), user_roadmap (name, target_role, archived), resource_progress."""
+    """Create and migrate tables: users (incl. google_id), progress (roadmap_id, notes), user_roadmap (name, target_role, archived), resource_progress, weekly_focus, topic_sessions, comments."""
     with get_db() as conn:
         conn.executescript("""
             CREATE TABLE IF NOT EXISTS users (
@@ -93,6 +98,8 @@ def init_db() -> None:
                 domain TEXT,
                 name TEXT,
                 target_role TEXT,
+                weekly_hours INTEGER,
+                goal_date TEXT,
                 archived INTEGER NOT NULL DEFAULT 0,
                 FOREIGN KEY (user_id) REFERENCES users (id)
             );
@@ -105,12 +112,57 @@ def init_db() -> None:
                 completed INTEGER NOT NULL DEFAULT 0,
                 UNIQUE(user_id, roadmap_id, topic, resource_url)
             );
+            CREATE TABLE IF NOT EXISTS review_tasks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                roadmap_id INTEGER NOT NULL,
+                topic TEXT NOT NULL,
+                due_date TEXT NOT NULL,
+                completed INTEGER NOT NULL DEFAULT 0,
+                completed_at TEXT,
+                UNIQUE(user_id, roadmap_id, topic, due_date)
+            );
+            CREATE TABLE IF NOT EXISTS share_tokens (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                roadmap_id INTEGER NOT NULL,
+                token TEXT UNIQUE NOT NULL,
+                created_at TEXT NOT NULL,
+                revoked INTEGER NOT NULL DEFAULT 0,
+                UNIQUE(user_id, roadmap_id)
+            );
+            CREATE TABLE IF NOT EXISTS weekly_focus (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                roadmap_id INTEGER NOT NULL,
+                topic TEXT NOT NULL,
+                week_start TEXT NOT NULL,
+                UNIQUE(user_id, roadmap_id, topic, week_start)
+            );
+            CREATE TABLE IF NOT EXISTS topic_sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                roadmap_id INTEGER,
+                topic TEXT NOT NULL,
+                start_ts TEXT NOT NULL,
+                end_ts TEXT
+            );
+            CREATE TABLE IF NOT EXISTS comments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                roadmap_id INTEGER NOT NULL,
+                topic TEXT NOT NULL,
+                content TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            );
         """)
         conn.commit()
         for table, col, sql in [
             ("users", "google_id", "ALTER TABLE users ADD COLUMN google_id TEXT"),
             ("user_roadmap", "name", "ALTER TABLE user_roadmap ADD COLUMN name TEXT"),
             ("user_roadmap", "target_role", "ALTER TABLE user_roadmap ADD COLUMN target_role TEXT"),
+            ("user_roadmap", "weekly_hours", "ALTER TABLE user_roadmap ADD COLUMN weekly_hours INTEGER"),
+            ("user_roadmap", "goal_date", "ALTER TABLE user_roadmap ADD COLUMN goal_date TEXT"),
             ("user_roadmap", "archived", "ALTER TABLE user_roadmap ADD COLUMN archived INTEGER NOT NULL DEFAULT 0"),
             ("progress", "roadmap_id", "ALTER TABLE progress ADD COLUMN roadmap_id INTEGER"),
             ("progress", "notes", "ALTER TABLE progress ADD COLUMN notes TEXT"),
@@ -121,6 +173,17 @@ def init_db() -> None:
                     conn.commit()
                 except sqlite3.OperationalError:
                     pass
+        # Indexes
+        try:
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_progress_user_roadmap_status ON progress(user_id, roadmap_id, status)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_review_tasks_user_due ON review_tasks(user_id, completed, due_date)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_resource_progress_user ON resource_progress(user_id, roadmap_id)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_weekly_focus_user_week ON weekly_focus(user_id, week_start)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_topic_sessions_user ON topic_sessions(user_id)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_comments_roadmap ON comments(roadmap_id)")
+            conn.commit()
+        except sqlite3.OperationalError:
+            pass
 
 
 def get_available_domains() -> list:
@@ -183,7 +246,7 @@ def get_paths(user_id: int, archived: bool = False) -> list:
     """Return list of path dicts (id, name, domain, target_role, created_at, progress_pct, archived)."""
     with get_db() as conn:
         rows = conn.execute(
-            "SELECT id, name, domain, target_role, created_at, roadmap_json, archived FROM user_roadmap WHERE user_id = ? AND archived = ? ORDER BY id DESC",
+            "SELECT id, name, domain, target_role, created_at, roadmap_json, weekly_hours, goal_date, archived FROM user_roadmap WHERE user_id = ? AND archived = ? ORDER BY id DESC",
             (user_id, 1 if archived else 0),
         ).fetchall()
         out = []
@@ -200,6 +263,9 @@ def get_paths(user_id: int, archived: bool = False) -> list:
             completed = cur.fetchone()[0] if r["id"] else 0
             total = len(topics)
             pct = round(100 * completed / total, 1) if total else 0
+            weekly_hours = r["weekly_hours"] if r["weekly_hours"] is not None else 5
+            goal_date = (r["goal_date"] or "").strip()
+            goal_status = compute_goal_status(r["created_at"], weekly_hours, goal_date, total, completed)
             out.append({
                 "id": r["id"],
                 "name": r["name"] or ("Path " + str(r["id"])),
@@ -209,6 +275,9 @@ def get_paths(user_id: int, archived: bool = False) -> list:
                 "progress_pct": pct,
                 "total_topics": total,
                 "completed_topics": completed,
+                "weekly_hours": weekly_hours,
+                "goal_date": goal_date,
+                **goal_status,
             })
         return out
 
@@ -217,7 +286,7 @@ def get_roadmap_by_id(roadmap_id: int, user_id: int):
     """Return roadmap row (id, name, domain, target_role, roadmap_json) or None."""
     with get_db() as conn:
         return conn.execute(
-            "SELECT id, name, domain, target_role, roadmap_json FROM user_roadmap WHERE id = ? AND user_id = ?",
+            "SELECT id, name, domain, target_role, weekly_hours, goal_date, created_at, roadmap_json FROM user_roadmap WHERE id = ? AND user_id = ?",
             (roadmap_id, user_id),
         ).fetchone()
 
@@ -315,6 +384,133 @@ def get_completions_per_week(user_id: int, weeks: int = 8) -> list:
         year, week, _ = dt.isocalendar()
         week_counts[f"{year}-W{week:02d}"] += r["cnt"]
     return [{"week": k, "count": v} for k, v in sorted(week_counts.items())]
+
+
+def _week_start(date_obj=None) -> str:
+    d = (date_obj or datetime.utcnow().date())
+    monday = d - timedelta(days=d.weekday())
+    return monday.isoformat()
+
+
+def get_weekly_focus(user_id: int) -> list:
+    ws = _week_start()
+    with get_db() as conn:
+        rows = conn.execute(
+            """
+            SELECT wf.roadmap_id, wf.topic, ur.name
+            FROM weekly_focus wf
+            JOIN user_roadmap ur ON ur.id = wf.roadmap_id
+            WHERE wf.user_id = ? AND wf.week_start = ? AND ur.archived = 0
+            ORDER BY wf.id DESC
+            """,
+            (user_id, ws),
+        ).fetchall()
+    return [{"roadmap_id": r["roadmap_id"], "topic": r["topic"], "path_name": (r["name"] or ("Path " + str(r["roadmap_id"])))} for r in rows]
+
+
+def get_topic_total_minutes(user_id: int, roadmap_id: int, topic: str) -> int:
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT start_ts, end_ts FROM topic_sessions WHERE user_id = ? AND (roadmap_id IS NULL OR roadmap_id = ?) AND topic = ?",
+            (user_id, roadmap_id or 0, topic),
+        ).fetchall()
+    total = 0
+    for r in rows:
+        try:
+            start = datetime.fromisoformat((r["start_ts"] or "")[:19])
+            end = datetime.fromisoformat((r["end_ts"] or "")[:19]) if r["end_ts"] else datetime.utcnow()
+            total += int((end - start).total_seconds() // 60)
+        except Exception:
+            continue
+    return total
+
+
+def compute_goal_status(created_at: str, weekly_hours: int, goal_date: str, total_topics: int, completed_topics: int) -> dict:
+    try:
+        start = datetime.fromisoformat((created_at or "")[:19]).date()
+    except Exception:
+        start = datetime.utcnow().date()
+    today = datetime.utcnow().date()
+    days_elapsed = max(0, (today - start).days)
+    weeks_elapsed = days_elapsed / 7.0
+    hours_per_topic = 2.0
+    weekly_hours = max(1, min(40, int(weekly_hours or 5)))
+    topics_per_week = max(0.5, weekly_hours / hours_per_topic)
+    expected = int(min(total_topics, round(weeks_elapsed * topics_per_week)))
+    behind_by = max(0, expected - int(completed_topics or 0))
+    days_left = None
+    if goal_date:
+        try:
+            gd = datetime.fromisoformat(goal_date[:10]).date()
+            days_left = (gd - today).days
+        except Exception:
+            days_left = None
+    return {"expected_completed": expected, "behind_by": behind_by, "days_left": days_left}
+
+
+def get_due_reviews(user_id: int, limit: int = 8) -> list:
+    today = datetime.utcnow().date().isoformat()
+    with get_db() as conn:
+        rows = conn.execute(
+            """
+            SELECT rt.id, rt.roadmap_id, rt.topic, rt.due_date, ur.name
+            FROM review_tasks rt
+            JOIN user_roadmap ur ON ur.id = rt.roadmap_id
+            WHERE rt.user_id = ? AND rt.completed = 0 AND rt.due_date <= ? AND ur.archived = 0
+            ORDER BY rt.due_date ASC, rt.id ASC
+            LIMIT ?
+            """,
+            (user_id, today, limit),
+        ).fetchall()
+    return [{"id": r["id"], "roadmap_id": r["roadmap_id"], "topic": r["topic"], "due_date": r["due_date"], "path_name": (r["name"] or ("Path " + str(r["roadmap_id"])))} for r in rows]
+
+
+def get_next_best_topics(user_id: int, streak: int, limit: int = 3) -> list:
+    paths = get_paths(user_id, archived=False)
+    if not paths:
+        return []
+    active = paths[0]
+    roadmap_id = active["id"]
+    weekly_hours = int(active.get("weekly_hours") or 5)
+    count = 1 if weekly_hours <= 3 else 2 if weekly_hours <= 8 else 3
+    if streak >= 7:
+        count = min(3, count + 1)
+    count = min(limit, max(1, count))
+    row = get_roadmap_by_id(roadmap_id, user_id)
+    if not row:
+        return []
+    try:
+        roadmap = json.loads(row["roadmap_json"]) if row["roadmap_json"] else []
+    except (json.JSONDecodeError, TypeError):
+        roadmap = []
+    completed = get_completed_topics(user_id, roadmap_id)
+    completed_set = {c["topic"] for c in completed}
+    out = []
+    for w in roadmap:
+        topic = (w.get("topic") or "").strip()
+        if not topic or topic in completed_set:
+            continue
+        out.append({"topic": topic, "roadmap_id": roadmap_id, "path_name": active.get("name") or ("Path " + str(roadmap_id))})
+        if len(out) >= count:
+            break
+    return out
+
+
+def get_or_create_share_token(user_id: int, roadmap_id: int) -> str:
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT token FROM share_tokens WHERE user_id = ? AND roadmap_id = ? AND revoked = 0",
+            (user_id, roadmap_id),
+        ).fetchone()
+        if row and row["token"]:
+            return row["token"]
+        token = secrets.token_urlsafe(24)
+        conn.execute(
+            "INSERT OR REPLACE INTO share_tokens (user_id, roadmap_id, token, created_at, revoked) VALUES (?, ?, ?, ?, 0)",
+            (user_id, roadmap_id, token, datetime.utcnow().isoformat()),
+        )
+        conn.commit()
+        return token
 
 
 # -----------------------------------------------------------------------------
@@ -517,6 +713,130 @@ def api_archive_path():
     return jsonify({"ok": True})
 
 
+@app.route("/api/rename_path", methods=["POST"])
+@require_login
+def api_rename_path():
+    data = request.get_json() or request.form
+    roadmap_id = data.get("roadmap_id")
+    name = (data.get("name") or "").strip()
+    if not roadmap_id or not name:
+        return jsonify({"ok": False}), 400
+    try:
+        roadmap_id = int(roadmap_id)
+    except (TypeError, ValueError):
+        return jsonify({"ok": False}), 400
+    user_id = session["user_id"]
+    with get_db() as conn:
+        cur = conn.execute("UPDATE user_roadmap SET name = ? WHERE id = ? AND user_id = ?", (name[:80], roadmap_id, user_id))
+        conn.commit()
+    return jsonify({"ok": True})
+
+
+@app.route("/api/clone_path", methods=["POST"])
+@require_login
+def api_clone_path():
+    data = request.get_json() or request.form
+    roadmap_id = data.get("roadmap_id")
+    if not roadmap_id:
+        return jsonify({"ok": False}), 400
+    try:
+        roadmap_id = int(roadmap_id)
+    except (TypeError, ValueError):
+        return jsonify({"ok": False}), 400
+    user_id = session["user_id"]
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT roadmap_json, domain, name, target_role, weekly_hours, goal_date FROM user_roadmap WHERE id = ? AND user_id = ?",
+            (roadmap_id, user_id),
+        ).fetchone()
+        if not row:
+            return jsonify({"ok": False}), 404
+        base_name = (row["name"] or ("Path " + str(roadmap_id))).strip()
+        new_name = (base_name + " (copy)")[:80]
+        conn.execute(
+            "INSERT INTO user_roadmap (user_id, created_at, roadmap_json, domain, name, target_role, weekly_hours, goal_date, archived) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)",
+            (user_id, datetime.utcnow().isoformat(), row["roadmap_json"], row["domain"], new_name, row["target_role"], row["weekly_hours"], row["goal_date"]),
+        )
+        conn.commit()
+        new_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+    return jsonify({"ok": True, "roadmap_id": new_id})
+
+
+@app.route("/api/update_goal", methods=["POST"])
+@require_login
+def api_update_goal():
+    data = request.get_json() or request.form
+    roadmap_id = data.get("roadmap_id")
+    goal_date = (data.get("goal_date") or "").strip()
+    weekly_hours = data.get("weekly_hours")
+    if not roadmap_id:
+        return jsonify({"ok": False}), 400
+    try:
+        roadmap_id = int(roadmap_id)
+    except (TypeError, ValueError):
+        return jsonify({"ok": False}), 400
+    if weekly_hours is None or str(weekly_hours).strip() == "":
+        weekly_hours = 5
+    try:
+        weekly_hours = max(1, min(40, int(weekly_hours)))
+    except (TypeError, ValueError):
+        weekly_hours = 5
+    if goal_date:
+        try:
+            datetime.fromisoformat(goal_date[:10])
+            goal_date = goal_date[:10]
+        except Exception:
+            goal_date = ""
+    user_id = session["user_id"]
+    with get_db() as conn:
+        cur = conn.execute(
+            "UPDATE user_roadmap SET goal_date = ?, weekly_hours = ? WHERE id = ? AND user_id = ?",
+            (goal_date or None, weekly_hours, roadmap_id, user_id),
+        )
+        conn.commit()
+    return jsonify({"ok": True, "goal_date": goal_date, "weekly_hours": weekly_hours})
+
+
+@app.route("/api/share_create", methods=["POST"])
+@require_login
+def api_share_create():
+    data = request.get_json() or request.form
+    roadmap_id = data.get("roadmap_id")
+    if not roadmap_id:
+        return jsonify({"ok": False}), 400
+    try:
+        roadmap_id = int(roadmap_id)
+    except (TypeError, ValueError):
+        return jsonify({"ok": False}), 400
+    user_id = session["user_id"]
+    row = get_roadmap_by_id(roadmap_id, user_id)
+    if not row:
+        return jsonify({"ok": False}), 404
+    token = get_or_create_share_token(user_id, roadmap_id)
+    return jsonify({"ok": True, "url": url_for("share_view", token=token, _external=True)})
+
+
+@app.route("/api/review_complete", methods=["POST"])
+@require_login
+def api_review_complete():
+    data = request.get_json() or request.form
+    review_id = data.get("review_id")
+    if not review_id:
+        return jsonify({"ok": False}), 400
+    try:
+        review_id = int(review_id)
+    except (TypeError, ValueError):
+        return jsonify({"ok": False}), 400
+    user_id = session["user_id"]
+    with get_db() as conn:
+        cur = conn.execute(
+            "UPDATE review_tasks SET completed = 1, completed_at = ? WHERE id = ? AND user_id = ?",
+            (datetime.utcnow().isoformat(), review_id, user_id),
+        )
+        conn.commit()
+    return jsonify({"ok": True})
+
+
 @app.route("/login/google")
 def login_google():
     """Redirect to Google OAuth consent screen."""
@@ -591,6 +911,21 @@ def dashboard():
     progress_pct = round(100 * completed_count / total_topics, 1) if total_topics else 0
     streak = get_streak(user_id)
     weekly_data = get_completions_per_week(user_id)
+    next_topics = get_next_best_topics(user_id, streak=streak)
+    due_reviews = get_due_reviews(user_id)
+    weekly_focus = get_weekly_focus(user_id)
+    # Simple XP: 10 per completed topic + 1 per 5 minutes tracked
+    total_minutes = 0
+    for t in roadmap_topics:
+        total_minutes += get_topic_total_minutes(user_id, None, t)
+    xp = completed_count * 10 + max(0, total_minutes // 5)
+    badges = []
+    if streak >= 3:
+        badges.append("3-day streak")
+    if streak >= 7:
+        badges.append("7-day streak")
+    if streak >= 30:
+        badges.append("30-day streak")
     return render_template(
         "dashboard.html",
         username=session.get("username", "User"),
@@ -601,6 +936,11 @@ def dashboard():
         progress_pct=progress_pct,
         streak=streak,
         weekly_data=weekly_data,
+        next_topics=next_topics,
+        due_reviews=due_reviews,
+        weekly_focus=weekly_focus,
+        xp=xp,
+        badges=badges,
     )
 
 
@@ -626,6 +966,13 @@ def generate():
         weekly_study_hours = max(1, min(20, int(weekly_hours)))
     except ValueError:
         weekly_study_hours = 5
+    goal_date = (request.form.get("goal_date") or "").strip()
+    if goal_date:
+        try:
+            datetime.fromisoformat(goal_date[:10])
+            goal_date = goal_date[:10]
+        except Exception:
+            goal_date = ""
     known_skills_raw = request.form.get("known_skills") or ""
     known_skills = [s.strip() for s in known_skills_raw.split(",") if s.strip()]
     try:
@@ -648,8 +995,8 @@ def generate():
         return render_template("generate.html", error=str(e), emerging_roles=roles, domains=domains)
     with get_db() as conn:
         conn.execute(
-            "INSERT INTO user_roadmap (user_id, created_at, roadmap_json, domain, name, target_role, archived) VALUES (?, ?, ?, ?, ?, ?, 0)",
-            (session["user_id"], datetime.utcnow().isoformat(), json.dumps(roadmap), domain, path_name, target_role),
+            "INSERT INTO user_roadmap (user_id, created_at, roadmap_json, domain, name, target_role, weekly_hours, goal_date, archived) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)",
+            (session["user_id"], datetime.utcnow().isoformat(), json.dumps(roadmap), domain, path_name, target_role, weekly_study_hours, goal_date or None),
         )
         conn.commit()
         roadmap_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
@@ -671,10 +1018,16 @@ def roadmap(roadmap_id=None):
         roadmap_data = json.loads(row["roadmap_json"]) if row["roadmap_json"] else []
         target_role = row["target_role"] or "Learner"
         path_name = row["name"]
+        weekly_hours = row["weekly_hours"] if row["weekly_hours"] is not None else 5
+        goal_date = (row["goal_date"] or "").strip()
+        goal_status = compute_goal_status(row["created_at"], weekly_hours, goal_date, len(roadmap_data), len(get_completed_topics(user_id, roadmap_id)))
     else:
         roadmap_data = session.get("roadmap") or []
         target_role = session.get("target_role") or "Learner"
         path_name = None
+        weekly_hours = 5
+        goal_date = ""
+        goal_status = {"expected_completed": 0, "behind_by": 0, "days_left": None}
         if not roadmap_data:
             paths = get_paths(user_id, archived=False)
             if paths:
@@ -692,7 +1045,402 @@ def roadmap(roadmap_id=None):
         completed_set=completed_set,
         resource_done=resource_done,
         milestone_notes=milestone_notes,
+        weekly_hours=weekly_hours,
+        goal_date=goal_date,
+        goal_status=goal_status,
     )
+
+
+@app.route("/compare")
+@require_login
+def compare():
+    user_id = session["user_id"]
+    paths = get_paths(user_id, archived=False)
+    a = request.args.get("a")
+    b = request.args.get("b")
+    if not a or not b:
+        return render_template("compare.html", paths=paths, a=None, b=None, result=None)
+    try:
+        a_id = int(a)
+        b_id = int(b)
+    except (TypeError, ValueError):
+        return render_template("compare.html", paths=paths, a=None, b=None, result=None)
+    if a_id == b_id:
+        return render_template("compare.html", paths=paths, a=a_id, b=b_id, result=None)
+    a_row = get_roadmap_by_id(a_id, user_id)
+    b_row = get_roadmap_by_id(b_id, user_id)
+    if not a_row or not b_row:
+        return render_template("compare.html", paths=paths, a=a_id, b=b_id, result=None)
+    try:
+        a_rm = json.loads(a_row["roadmap_json"]) if a_row["roadmap_json"] else []
+    except (json.JSONDecodeError, TypeError):
+        a_rm = []
+    try:
+        b_rm = json.loads(b_row["roadmap_json"]) if b_row["roadmap_json"] else []
+    except (json.JSONDecodeError, TypeError):
+        b_rm = []
+    a_topics = [w.get("topic") for w in a_rm if (w.get("topic") or "").strip()]
+    b_topics = [w.get("topic") for w in b_rm if (w.get("topic") or "").strip()]
+    a_set = set(a_topics)
+    b_set = set(b_topics)
+    only_a = sorted(list(a_set - b_set))
+    only_b = sorted(list(b_set - a_set))
+    common = sorted(list(a_set & b_set))
+    a_completed = {c["topic"] for c in get_completed_topics(user_id, a_id)}
+    b_completed = {c["topic"] for c in get_completed_topics(user_id, b_id)}
+    result = {
+        "a": {"id": a_id, "name": a_row["name"] or ("Path " + str(a_id)), "total": len(a_set), "completed": len(a_set & a_completed)},
+        "b": {"id": b_id, "name": b_row["name"] or ("Path " + str(b_id)), "total": len(b_set), "completed": len(b_set & b_completed)},
+        "only_a": only_a,
+        "only_b": only_b,
+        "common": common,
+    }
+    return render_template("compare.html", paths=paths, a=a_id, b=b_id, result=result)
+
+
+@app.route("/export/roadmap/<int:roadmap_id>.csv")
+@require_login
+def export_roadmap_csv(roadmap_id: int):
+    user_id = session["user_id"]
+    row = get_roadmap_by_id(roadmap_id, user_id)
+    if not row:
+        abort(404)
+    try:
+        roadmap = json.loads(row["roadmap_json"]) if row["roadmap_json"] else []
+    except (json.JSONDecodeError, TypeError):
+        roadmap = []
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(["week", "topic", "tasks", "resources"])
+    for item in roadmap:
+        week = item.get("week") or ""
+        topic = (item.get("topic") or "").strip()
+        tasks = item.get("tasks") or []
+        resources = item.get("resources") or []
+        if isinstance(tasks, list):
+            tasks = " | ".join([str(t).strip() for t in tasks if str(t).strip()])
+        if isinstance(resources, list):
+            resources = " | ".join([str(u).strip() for u in resources if str(u).strip()])
+        w.writerow([week, topic, tasks, resources])
+    filename = ((row["name"] or ("roadmap-" + str(roadmap_id)))[:60].replace(" ", "_") + ".csv")
+    return Response(
+        buf.getvalue(),
+        mimetype="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
+
+
+@app.route("/print/roadmap/<int:roadmap_id>")
+@require_login
+def print_roadmap(roadmap_id: int):
+    user_id = session["user_id"]
+    row = get_roadmap_by_id(roadmap_id, user_id)
+    if not row:
+        abort(404)
+    try:
+        roadmap = json.loads(row["roadmap_json"]) if row["roadmap_json"] else []
+    except (json.JSONDecodeError, TypeError):
+        roadmap = []
+    return render_template("print_roadmap.html", roadmap=roadmap, path_name=row["name"], target_role=row["target_role"])
+
+
+@app.route("/share/<token>")
+def share_view(token: str):
+    token = (token or "").strip()
+    if not token:
+        abort(404)
+    with get_db() as conn:
+        row = conn.execute(
+            """
+            SELECT st.roadmap_id, ur.name, ur.target_role, ur.roadmap_json
+            FROM share_tokens st
+            JOIN user_roadmap ur ON ur.id = st.roadmap_id
+            WHERE st.token = ? AND st.revoked = 0
+            """,
+            (token,),
+        ).fetchone()
+    if not row:
+        abort(404)
+    try:
+        roadmap = json.loads(row["roadmap_json"]) if row["roadmap_json"] else []
+    except (json.JSONDecodeError, TypeError):
+        roadmap = []
+    return render_template("share.html", roadmap=roadmap, path_name=row["name"], target_role=row["target_role"])
+
+
+@app.route("/reviews")
+@require_login
+def reviews_page():
+    user_id = session["user_id"]
+    due = get_due_reviews(user_id, limit=100)
+    with get_db() as conn:
+        upcoming = conn.execute(
+            """
+            SELECT rt.id, rt.roadmap_id, rt.topic, rt.due_date, ur.name
+            FROM review_tasks rt
+            JOIN user_roadmap ur ON ur.id = rt.roadmap_id
+            WHERE rt.user_id = ? AND rt.completed = 0 AND rt.due_date > date('now') AND ur.archived = 0
+            ORDER BY rt.due_date ASC
+            LIMIT 100
+            """,
+            (user_id,),
+        ).fetchall()
+    upcoming_list = [{"id": r["id"], "roadmap_id": r["roadmap_id"], "topic": r["topic"], "due_date": r["due_date"], "path_name": (r["name"] or ("Path " + str(r["roadmap_id"])))} for r in upcoming]
+    return render_template("reviews.html", due_reviews=due, upcoming_reviews=upcoming_list)
+
+
+@app.route("/export/roadmap/<int:roadmap_id>.ics")
+@require_login
+def export_roadmap_ics(roadmap_id: int):
+    user_id = session["user_id"]
+    row = get_roadmap_by_id(roadmap_id, user_id)
+    if not row:
+        abort(404)
+    try:
+        roadmap = json.loads(row["roadmap_json"]) if row["roadmap_json"] else []
+    except (json.JSONDecodeError, TypeError):
+        roadmap = []
+    lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//AI Learning Platform//Roadmap//EN"]
+    base_date = datetime.utcnow().date()
+    for i, w in enumerate(roadmap, start=0):
+        topic = (w.get("topic") or "").strip()
+        date = (base_date + timedelta(days=7*i)).strftime("%Y%m%d")
+        uid = f"roadmap-{roadmap_id}-{i}@local"
+        lines += [
+            "BEGIN:VEVENT",
+            f"UID:{uid}",
+            f"DTSTART;VALUE=DATE:{date}",
+            f"DTEND;VALUE=DATE:{date}",
+            f"SUMMARY:Roadmap - {topic}",
+            "END:VEVENT",
+        ]
+    lines.append("END:VCALENDAR")
+    return Response("\r\n".join(lines), mimetype="text/calendar", headers={"Content-Disposition": f"attachment; filename=roadmap-{roadmap_id}.ics"})
+
+
+@app.route("/export/reviews.ics")
+@require_login
+def export_reviews_ics():
+    user_id = session["user_id"]
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT topic, due_date FROM review_tasks WHERE user_id = ? AND completed = 0 ORDER BY due_date ASC LIMIT 500",
+            (user_id,),
+        ).fetchall()
+    lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//AI Learning Platform//Reviews//EN"]
+    for idx, r in enumerate(rows):
+        topic = (r["topic"] or "").strip()
+        date_str = str(r["due_date"])[:10]
+        try:
+            dt = datetime.fromisoformat(date_str).date().strftime("%Y%m%d")
+        except Exception:
+            continue
+        uid = f"review-{idx}-{topic.replace(' ','_')}@local"
+        lines += [
+            "BEGIN:VEVENT",
+            f"UID:{uid}",
+            f"DTSTART;VALUE=DATE:{dt}",
+            f"DTEND;VALUE=DATE:{dt}",
+            f"SUMMARY:Review - {topic}",
+            "END:VEVENT",
+        ]
+    lines.append("END:VCALENDAR")
+    return Response("\r\n".join(lines), mimetype="text/calendar", headers={"Content-Disposition": "attachment; filename=reviews.ics"})
+
+
+@app.route("/api/weekly_focus_toggle", methods=["POST"])
+@require_login
+def api_weekly_focus_toggle():
+    data = request.get_json() or request.form
+    roadmap_id = data.get("roadmap_id")
+    topic = (data.get("topic") or "").strip()
+    in_focus = data.get("in_focus")
+    if not roadmap_id or not topic:
+        return jsonify({"ok": False}), 400
+    try:
+        roadmap_id = int(roadmap_id)
+    except (TypeError, ValueError):
+        return jsonify({"ok": False}), 400
+    ws = _week_start()
+    user_id = session["user_id"]
+    with get_db() as conn:
+        if in_focus in (True, "true", "1", 1):
+            conn.execute(
+                "INSERT OR IGNORE INTO weekly_focus (user_id, roadmap_id, topic, week_start) VALUES (?, ?, ?, ?)",
+                (user_id, roadmap_id, topic, ws),
+            )
+        else:
+            conn.execute(
+                "DELETE FROM weekly_focus WHERE user_id = ? AND roadmap_id = ? AND topic = ? AND week_start = ?",
+                (user_id, roadmap_id, topic, ws),
+            )
+        conn.commit()
+    return jsonify({"ok": True})
+
+
+@app.route("/api/timer_start", methods=["POST"])
+@require_login
+def api_timer_start():
+    data = request.get_json() or request.form
+    roadmap_id = data.get("roadmap_id")
+    topic = (data.get("topic") or "").strip()
+    try:
+        roadmap_id = int(roadmap_id) if roadmap_id else None
+    except (TypeError, ValueError):
+        roadmap_id = None
+    if not topic:
+        return jsonify({"ok": False}), 400
+    user_id = session["user_id"]
+    with get_db() as conn:
+        conn.execute(
+            "INSERT INTO topic_sessions (user_id, roadmap_id, topic, start_ts, end_ts) VALUES (?, ?, ?, ?, NULL)",
+            (user_id, roadmap_id, topic, datetime.utcnow().isoformat()),
+        )
+        conn.commit()
+        sid = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+    return jsonify({"ok": True, "session_id": sid})
+
+
+@app.route("/api/timer_stop", methods=["POST"])
+@require_login
+def api_timer_stop():
+    data = request.get_json() or request.form
+    topic = (data.get("topic") or "").strip()
+    user_id = session["user_id"]
+    if not topic:
+        return jsonify({"ok": False}), 400
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT id, start_ts FROM topic_sessions WHERE user_id = ? AND topic = ? AND end_ts IS NULL ORDER BY id DESC LIMIT 1",
+            (user_id, topic),
+        ).fetchone()
+        if not row:
+            return jsonify({"ok": False}), 404
+        end_ts = datetime.utcnow().isoformat()
+        conn.execute("UPDATE topic_sessions SET end_ts = ? WHERE id = ?", (end_ts, row["id"]))
+        conn.commit()
+    return jsonify({"ok": True})
+
+
+@app.route("/api/comment_add", methods=["POST"])
+@require_login
+def api_comment_add():
+    data = request.get_json() or request.form
+    roadmap_id = data.get("roadmap_id")
+    topic = (data.get("topic") or "").strip()
+    content = (data.get("content") or "").strip()
+    if not roadmap_id or not topic or not content:
+        return jsonify({"ok": False}), 400
+    try:
+        roadmap_id = int(roadmap_id)
+    except (TypeError, ValueError):
+        return jsonify({"ok": False}), 400
+    user_id = session["user_id"]
+    now = datetime.utcnow().isoformat()
+    with get_db() as conn:
+        conn.execute(
+            "INSERT INTO comments (user_id, roadmap_id, topic, content, created_at) VALUES (?, ?, ?, ?, ?)",
+            (user_id, roadmap_id, topic, content, now),
+        )
+        conn.commit()
+        cid = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+    return jsonify({"ok": True, "comment": {"id": cid, "user_id": user_id, "content": content, "created_at": now}})
+
+
+@app.route("/api/comment_delete", methods=["POST"])
+@require_login
+def api_comment_delete():
+    data = request.get_json() or request.form
+    comment_id = data.get("comment_id")
+    try:
+        cid = int(comment_id)
+    except (TypeError, ValueError):
+        return jsonify({"ok": False}), 400
+    user_id = session["user_id"]
+    with get_db() as conn:
+        conn.execute("DELETE FROM comments WHERE id = ? AND user_id = ?", (cid, user_id))
+        conn.commit()
+    return jsonify({"ok": True})
+
+
+@app.route("/api/import_share", methods=["POST"])
+@require_login
+def api_import_share():
+    data = request.get_json() or request.form
+    token = (data.get("token") or "").strip()
+    if not token:
+        return jsonify({"ok": False}), 400
+    with get_db() as conn:
+        row = conn.execute(
+            """
+            SELECT st.roadmap_id, ur.name, ur.domain, ur.target_role, ur.weekly_hours, ur.goal_date, ur.roadmap_json
+            FROM share_tokens st
+            JOIN user_roadmap ur ON ur.id = st.roadmap_id
+            WHERE st.token = ? AND st.revoked = 0
+            """,
+            (token,),
+        ).fetchone()
+        if not row:
+            return jsonify({"ok": False}), 404
+        conn.execute(
+            "INSERT INTO user_roadmap (user_id, created_at, roadmap_json, domain, name, target_role, weekly_hours, goal_date, archived) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)",
+            (session["user_id"], datetime.utcnow().isoformat(), row["roadmap_json"], row["domain"], (row["name"] or "") + " (import)", row["target_role"], row["weekly_hours"], row["goal_date"]),
+        )
+        conn.commit()
+        new_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+    return jsonify({"ok": True, "roadmap_id": new_id})
+
+
+@app.route("/api/share/<token>.json")
+def share_json(token: str):
+    token = (token or "").strip()
+    if not token:
+        abort(404)
+    with get_db() as conn:
+        row = conn.execute(
+            """
+            SELECT st.roadmap_id, ur.name, ur.target_role, ur.roadmap_json
+            FROM share_tokens st
+            JOIN user_roadmap ur ON ur.id = st.roadmap_id
+            WHERE st.token = ? AND st.revoked = 0
+            """,
+            (token,),
+        ).fetchone()
+    if not row:
+        abort(404)
+    return jsonify({"name": row["name"], "target_role": row["target_role"], "roadmap": json.loads(row["roadmap_json"] or "[]")})
+
+
+@app.route("/api/topic_time")
+@require_login
+def api_topic_time():
+    roadmap_id = request.args.get("roadmap_id")
+    topic = (request.args.get("topic") or "").strip()
+    try:
+        rid = int(roadmap_id) if roadmap_id else None
+    except (TypeError, ValueError):
+        rid = None
+    if not topic:
+        return jsonify({"minutes": 0})
+    minutes = get_topic_total_minutes(session["user_id"], rid, topic)
+    return jsonify({"minutes": minutes})
+
+
+@app.route("/api/comments")
+@require_login
+def api_comments():
+    roadmap_id = request.args.get("roadmap_id")
+    topic = (request.args.get("topic") or "").strip()
+    try:
+        rid = int(roadmap_id)
+    except (TypeError, ValueError):
+        return jsonify({"comments": []})
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT id, user_id, content, created_at FROM comments WHERE roadmap_id = ? AND topic = ? ORDER BY id ASC",
+            (rid, topic),
+        ).fetchall()
+    return jsonify({"comments": [{"id": r["id"], "user_id": r["user_id"], "content": r["content"], "created_at": r["created_at"]} for r in rows]})
 
 
 @app.route("/mark_completed", methods=["POST"])
@@ -725,6 +1473,13 @@ def mark_completed():
                 "INSERT INTO progress (user_id, roadmap_id, topic, status, date_completed, notes) VALUES (?, ?, ?, 'completed', ?, ?)",
                 (user_id, rid, topic, today, notes),
             )
+        if rid:
+            for d in (1, 7, 30):
+                due = (datetime.utcnow().date() + timedelta(days=d)).isoformat()
+                conn.execute(
+                    "INSERT OR IGNORE INTO review_tasks (user_id, roadmap_id, topic, due_date, completed) VALUES (?, ?, ?, ?, 0)",
+                    (user_id, rid, topic, due),
+                )
         conn.commit()
     return redirect(url_for("roadmap", roadmap_id=roadmap_id) if roadmap_id else url_for("roadmap"))
 
@@ -735,4 +1490,4 @@ def mark_completed():
 
 if __name__ == "__main__":
     init_db()
-    app.run(debug=True, port=5000)
+    app.run(debug=True, host="0.0.0.0", port=5000, use_reloader=False)

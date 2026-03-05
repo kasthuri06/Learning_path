@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Print Roadmap</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background: #fff; color: #000; }
+    .title { font-size: 24px; font-weight: 700; margin: 16px 0; }
+    .subtitle { color: #444; margin-bottom: 16px; }
+    .card { border: 1px solid #ddd; }
+    @media print { .no-print { display: none; } .card { break-inside: avoid; page-break-inside: avoid; } }
+  </style>
+  <script>
+    window.addEventListener('load', function() { setTimeout(function(){ window.print(); }, 300); });
+  </script>
+  </head>
+<body class="container py-4">
+  <div class="no-print mb-3"><a href="javascript:window.print()" class="btn btn-primary btn-sm">Print</a></div>
+  <div class="title">Roadmap</div>
+  <div class="subtitle">{{ path_name }} · Target role: {{ target_role }}</div>
+  {% if roadmap %}
+  {% for week in roadmap %}
+  <div class="card mb-3">
+    <div class="card-header">Week {{ week.week }}</div>
+    <div class="card-body">
+      <h5 class="card-title mb-2">{{ week.topic }}</h5>
+      {% if week.tasks %}
+      <div class="mb-2 fw-semibold">Tasks</div>
+      <ul>
+        {% for t in week.tasks %}
+        <li>{{ t }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+      {% if week.resources %}
+      <div class="mb-2 fw-semibold">Resources</div>
+      <ul>
+        {% for r in week.resources %}
+        <li>{{ r }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div>No content.</div>
+  {% endif %}
+</body>
+</html>

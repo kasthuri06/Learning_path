@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Reviews{% endblock %}
+{% block content %}
+<h1 class="app-title mb-3">Reviews</h1>
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Due now</span>
+        <a href="{{ url_for('export_reviews_ics') }}" class="btn btn-sm app-btn-ghost">Export .ics</a>
+      </div>
+      <div class="card-body">
+        {% if due_reviews %}
+        <ul class="list-unstyled mb-0">
+          {% for r in due_reviews %}
+          <li class="py-2 d-flex align-items-center justify-content-between" data-review-id="{{ r.id }}">
+            <div>
+              <div class="fw-semibold">{{ r.topic }}</div>
+              <div class="text-muted small">{{ r.path_name }} · Due {{ r.due_date }}</div>
+            </div>
+            <button type="button" class="btn btn-sm app-btn-success review-done-btn" data-review-id="{{ r.id }}">Done</button>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="text-muted">Nothing due today.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header">Upcoming</div>
+      <div class="card-body">
+        {% if upcoming_reviews %}
+        <ul class="list-unstyled mb-0">
+          {% for r in upcoming_reviews %}
+          <li class="py-2">
+            <div class="fw-semibold">{{ r.topic }}</div>
+            <div class="text-muted small">{{ r.path_name }} · {{ r.due_date }}</div>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="text-muted">No upcoming reviews.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+document.querySelectorAll('.review-done-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    var id = parseInt(this.getAttribute('data-review-id'));
+    fetch('/api/review_complete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ review_id: id }) })
+      .then(function(r) { return r.json(); })
+      .then(function(d) { if (d.ok) { var li = document.querySelector('li[data-review-id="'+id+'"]'); if (li) li.remove(); } });
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Shared Roadmap{% endblock %}
+{% block content %}
+<h1 class="app-title mb-2">Shared Roadmap</h1>
+<p class="app-subtitle mb-4">{% if path_name %}{{ path_name }} · {% endif %}Target role: <strong>{{ target_role }}</strong></p>
+{% if not roadmap %}
+<div class="app-alert app-alert-info">No content.</div>
+{% else %}
+{% for week in roadmap %}
+<div class="app-roadmap-week card mb-3">
+  <div class="card-header">Week {{ week.week }}</div>
+  <div class="card-body">
+    <h5 class="card-title mb-3">Topic: {{ week.topic }}</h5>
+    {% if week.tasks %}
+    <h6 class="app-label mb-2">Tasks</h6>
+    <ul class="mb-3 ps-3" style="color: var(--app-text-muted);">
+      {% for task in week.tasks %}
+      <li>{{ task }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+    {% if week.resources %}
+    <h6 class="app-label mb-2">Resources</h6>
+    <ul class="list-unstyled">
+      {% for url in week.resources %}
+      <li><a href="{{ url }}" target="_blank" rel="noopener">{{ url }}</a></li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </div>
+  </div>
+{% endfor %}
+{% endif %}
+{% endblock %}
