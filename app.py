@@ -1735,6 +1735,97 @@ def mark_completed():
 
 
 # -----------------------------------------------------------------------------
+# Profile helpers
+# -----------------------------------------------------------------------------
+
+def get_activity_heatmap(user_id: int, days: int = 365) -> dict:
+    """Return dict of date_str -> count for the last `days` days."""
+    with get_db() as conn:
+        rows = conn.execute(
+            """
+            SELECT date(date_completed) as d, COUNT(*) as cnt
+            FROM progress
+            WHERE user_id = ? AND status = 'completed'
+              AND date_completed >= date('now', ?)
+            GROUP BY date(date_completed)
+            """,
+            (user_id, f"-{days} days"),
+        ).fetchall()
+    return {r["d"]: r["cnt"] for r in rows}
+
+
+def get_domain_breakdown(user_id: int) -> list:
+    """Return list of {domain, completed, total} for radar chart."""
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT id, domain, roadmap_json FROM user_roadmap WHERE user_id = ? AND archived = 0",
+            (user_id,),
+        ).fetchall()
+    result = []
+    with get_db() as conn:
+        for r in rows:
+            try:
+                topics = [w.get("topic") for w in json.loads(r["roadmap_json"]) if w.get("topic")]
+            except Exception:
+                topics = []
+            completed = conn.execute(
+                "SELECT COUNT(DISTINCT topic) FROM progress WHERE user_id=? AND roadmap_id=? AND status='completed'",
+                (user_id, r["id"]),
+            ).fetchone()[0]
+            result.append({"domain": r["domain"] or "General", "completed": completed, "total": len(topics)})
+    return result
+
+
+# -----------------------------------------------------------------------------
+# Profile route
+# -----------------------------------------------------------------------------
+
+@app.route("/profile")
+@require_login
+def profile():
+    user_id = session["user_id"]
+    paths = get_paths(user_id, archived=False)
+    archived_paths = get_paths(user_id, archived=True)
+    completed_list = get_completed_topics(user_id)
+    roadmap_topics = get_user_roadmap_topics(user_id)
+    completed_topics_set = {c["topic"] for c in completed_list}
+    total_topics = len(roadmap_topics)
+    completed_count = sum(1 for t in roadmap_topics if t in completed_topics_set)
+    progress_pct = round(100 * completed_count / total_topics, 1) if total_topics else 0
+    streak = get_streak(user_id)
+    weekly_data = get_completions_per_week(user_id, weeks=12)
+    activity_heatmap = get_activity_heatmap(user_id, days=365)
+    domain_breakdown = get_domain_breakdown(user_id)
+    total_minutes = 0
+    for t in roadmap_topics:
+        total_minutes += get_topic_total_minutes(user_id, None, t)
+    xp = completed_count * 10 + max(0, total_minutes // 5)
+    badges = []
+    if streak >= 3: badges.append({"label": "3-Day Streak", "icon": "fire", "color": "warning"})
+    if streak >= 7: badges.append({"label": "Week Warrior", "icon": "bolt", "color": "info"})
+    if streak >= 30: badges.append({"label": "30-Day Legend", "icon": "crown", "color": "warning"})
+    if completed_count >= 10: badges.append({"label": "10 Topics Done", "icon": "check-double", "color": "success"})
+    if completed_count >= 50: badges.append({"label": "50 Topics Done", "icon": "trophy", "color": "warning"})
+    if len(paths) >= 3: badges.append({"label": "Multi-Learner", "icon": "layer-group", "color": "primary"})
+    return render_template(
+        "profile.html",
+        username=session.get("username", "User"),
+        paths=paths,
+        archived_paths=archived_paths,
+        total_topics=total_topics,
+        completed_topics=completed_count,
+        progress_pct=progress_pct,
+        streak=streak,
+        weekly_data=weekly_data,
+        activity_heatmap=activity_heatmap,
+        domain_breakdown=domain_breakdown,
+        xp=xp,
+        badges=badges,
+        total_minutes=total_minutes,
+    )
+
+
+# -----------------------------------------------------------------------------
 # Entry point
 # -----------------------------------------------------------------------------
 

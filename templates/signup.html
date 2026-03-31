@@ -1,104 +1,501 @@
 {% extends "base.html" %}
-{% block title %}Sign up - AI Learning Platform{% endblock %}
+{% block title %}Create Account - AI Learning Platform{% endblock %}
 {% block content %}
-<div class="row justify-content-center py-5">
-  <div class="col-md-5">
-    <div class="text-center mb-4">
-      <div class="app-auth-brand" aria-label="AI learning platform">AI learning platform</div>
+<div class="auth-container">
+  <!-- Animated Background -->
+  <div class="auth-bg-animation">
+    <div class="bg-shapes">
+      <div class="shape shape-1"></div>
+      <div class="shape shape-2"></div>
+      <div class="shape shape-3"></div>
+      <div class="shape shape-4"></div>
     </div>
-    <div class="app-auth-card">
-      <h1 class="app-auth-title">Sign up</h1>
-      <p class="app-auth-subtitle">Create an account to get started.</p>
-      {% if error %}
-      <div class="app-alert app-alert-danger mb-3" role="alert">{{ error }}</div>
-      {% endif %}
-      <form method="post" action="{{ url_for('signup') }}" id="signup-form">
-        <div class="mb-3">
-          <label for="email" class="app-label">Email</label>
-          <input type="email" class="form-control app-input" id="email" name="email" required placeholder="you@example.com">
-          <div id="username-suggestion" class="form-text mt-1" style="display:none;">Suggested username: <a href="#" id="username-suggestion-link"></a></div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="container py-5">
+    <div class="row justify-content-center">
+      <div class="col-xl-4 col-lg-5 col-md-7">
+        
+        <!-- Brand Hero -->
+        <div class="brand-hero text-center mb-5 fade-in-up">
+          <div class="brand-logo glass-card d-inline-flex align-items-center justify-content-center mb-4 lift-hover">
+            <i class="fas fa-brain fs-1 text-primary"></i>
+          </div>
+          <h1 class="brand-title mb-2" style="background: var(--primary-gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
+            AI Learning
+          </h1>
+          <p class="brand-subtitle lead text-muted mb-0">Join 10K+ learners mastering AI skills</p>
         </div>
-        <div class="mb-3">
-          <label for="username" class="app-label">Username</label>
-          <input type="text" class="form-control app-input" id="username" name="username" required autofocus placeholder="Choose a username">
-          <div id="username-feedback" class="form-text mt-1"></div>
-        </div>
-        <div class="mb-4">
-          <label for="password" class="app-label">Password</label>
-          <input type="password" class="form-control app-input" id="password" name="password" required minlength="4" placeholder="At least 4 characters">
-          <div class="password-strength mt-2">
-            <div class="progress" style="height:6px;">
-              <div id="password-strength-bar" class="progress-bar" role="progressbar" style="width:0%; transition: width 0.2s;"></div>
+
+        <!-- Auth Card -->
+        <div class="auth-card glass-card lift-hover p-5">
+          
+          <!-- Error Alert -->
+          {% if error %}
+          <div class="alert alert-danger glass-alert border-0 mb-4 animate-pulse" role="alert">
+            <div class="d-flex align-items-center">
+              <i class="fas fa-exclamation-triangle me-3 text-danger fs-4 opacity-75"></i>
+              <div>
+                <strong>Sign up failed</strong>
+                <div class="small mt-1">{{ error }}</div>
+              </div>
             </div>
-            <div id="password-strength-text" class="form-text"></div>
+          </div>
+          {% endif %}
+
+          <!-- Signup Form -->
+          <form method="post" action="{{ url_for('signup') }}" class="needs-validation" novalidate id="signup-form">
+            
+            <!-- Welcome Text -->
+            <div class="welcome-text text-center mb-5">
+              <h2 class="auth-title mb-2">Create Account</h2>
+              <p class="auth-subtitle text-muted">Get started with personalized learning paths</p>
+            </div>
+
+            <!-- Email Field -->
+            <div class="form-floating mb-4 input-group-lg">
+              <input type="email" 
+                     class="form-control auth-input shadow-none border-0 ps-5 bg-transparent" 
+                     id="email" 
+                     name="email" 
+                     required 
+                     placeholder="you@example.com">
+              <label for="email" class="input-floating-label">
+                <i class="fas fa-envelope me-2"></i>Email Address
+              </label>
+              <div class="input-icon-left">
+                <i class="fas fa-at text-muted"></i>
+              </div>
+              <div class="invalid-feedback">Please enter a valid email</div>
+              <div id="username-suggestion" class="form-text mt-2 pt-2 border-top" style="display:none; padding-top: 0.75rem;">
+                💡 Suggested username: <strong><a href="#" id="username-suggestion-link"></a></strong>
+              </div>
+            </div>
+
+            <!-- Username Field -->
+            <div class="form-floating mb-4 input-group-lg">
+              <input type="text" 
+                     class="form-control auth-input shadow-none border-0 ps-5 bg-transparent" 
+                     id="username" 
+                     name="username" 
+                     required 
+                     autofocus 
+                     minlength="3"
+                     placeholder="Choose username">
+              <label for="username" class="input-floating-label">
+                <i class="fas fa-user me-2"></i>Username
+              </label>
+              <div class="input-icon-left">
+                <i class="fas fa-user text-muted"></i>
+              </div>
+              <div id="username-feedback" class="form-text mt-2 pt-2 border-top"></div>
+              <div class="invalid-feedback">Username must be 3+ characters</div>
+            </div>
+
+            <!-- Password Field -->
+            <div class="form-floating mb-5 input-group-lg">
+              <input type="password" 
+                     class="form-control auth-input shadow-none border-0 ps-5 bg-transparent" 
+                     id="password" 
+                     name="password" 
+                     required 
+                     minlength="6"
+                     placeholder="Secure password">
+              <label for="password" class="input-floating-label">
+                <i class="fas fa-lock me-2"></i>Password
+              </label>
+              <div class="input-icon-left">
+                <i class="fas fa-lock text-muted"></i>
+              </div>
+              <div class="input-icon-right">
+                <i class="fas fa-eye-slash toggle-password" data-target="password"></i>
+              </div>
+              <div class="invalid-feedback">Password must be 6+ characters</div>
+            </div>
+
+            <!-- Password Strength -->
+            <div class="password-strength mb-4">
+              <div class="strength-label small fw-semibold text-muted mb-2">Password Strength</div>
+              <div class="progress strength-bar" style="height: 6px; border-radius: 3px; overflow: hidden;">
+                <div id="password-strength-bar" class="progress-bar" role="progressbar" style="width: 0%; transition: all 0.3s ease;"></div>
+              </div>
+              <div id="password-strength-text" class="small form-text mt-1"></div>
+            </div>
+
+            <!-- Primary Signup Button -->
+            <button type="submit" class="btn btn-primary-glow w-100 mb-4 position-relative overflow-hidden shadow-lg" disabled id="signup-submit">
+              <span class="btn-content">
+                <i class="fas fa-user-plus me-2"></i>
+                <span class="btn-text">Create Account</span>
+                <div class="btn-loader d-none">
+                  <i class="fas fa-spinner fa-spin"></i>
+                </div>
+              </span>
+              <div class="btn-shimmer"></div>
+            </button>
+
+            <!-- Divider -->
+            <div class="divider-with-text my-4">
+              <span class="divider-text text-muted small">or sign in with</span>
+            </div>
+
+            <!-- Login Link -->
+            <a href="{{ url_for('login') }}" class="btn btn-outline-light w-100 rounded-pill d-flex align-items-center justify-content-center gap-2 hover-lift">
+              <i class="fas fa-arrow-left me-2"></i>
+              <span>Have an account? Log in</span>
+            </a>
+          </form>
+
+          <!-- Features Preview -->
+          <div class="features-preview mt-5 pt-4 border-top" style="border-top: 1px solid var(--glass-border);">
+            <h6 class="mb-3 fw-semibold text-center">
+              <i class="fas fa-star me-2 text-warning"></i>What's included
+            </h6>
+            <div class="row text-center g-2 small">
+              <div class="col-4">
+                <i class="fas fa-brain fs-4 text-primary mb-1 d-block"></i>
+                <div>AI Roadmaps</div>
+              </div>
+              <div class="col-4">
+                <i class="fas fa-calendar-check fs-4 text-success mb-1 d-block"></i>
+                <div>Spaced Repetition</div>
+              </div>
+              <div class="col-4">
+                <i class="fas fa-chart-line fs-4 text-info mb-1 d-block"></i>
+                <div>Progress Tracking</div>
+              </div>
+            </div>
           </div>
         </div>
-        <button type="submit" class="btn app-btn-primary w-100 mb-2">Sign up</button>
-        <a href="{{ url_for('login') }}" class="btn app-btn-ghost w-100">Log in</a>
-      </form>
+
+        <!-- Auth Footer -->
+        <div class="auth-footer mt-5 text-center">
+          <p class="small text-muted mb-2">
+            <i class="fas fa-shield-alt me-2"></i>
+            Secure • Privacy-first • No spam
+          </p>
+          <p class="x-small text-muted">
+            By signing up, you agree to our <a href="#">Terms</a> and <a href="#">Privacy Policy</a>
+          </p>
+        </div>
+      </div>
     </div>
   </div>
 </div>
-<script>
-(function() {
-  var usernameInput = document.getElementById('username');
-  var emailInput = document.getElementById('email');
-  var passwordInput = document.getElementById('password');
-  var feedback = document.getElementById('username-feedback');
-  var suggestionDiv = document.getElementById('username-suggestion');
-  var suggestionLink = document.getElementById('username-suggestion-link');
-  var strengthBar = document.getElementById('password-strength-bar');
-  var strengthText = document.getElementById('password-strength-text');
-  var checkTimeout;
+{% endblock %}
 
-  function checkUsername() {
-    var v = usernameInput.value.trim();
-    if (!v) { feedback.textContent = ''; feedback.className = 'form-text mt-1'; return; }
-    fetch('/api/check-username?username=' + encodeURIComponent(v))
-      .then(function(r) { return r.json(); })
-      .then(function(d) {
-        if (d.available) {
-          feedback.textContent = 'Username is available';
-          feedback.className = 'form-text mt-1 text-success';
-        } else {
-          feedback.textContent = 'Username is taken';
-          feedback.className = 'form-text mt-1 text-danger';
-        }
-      });
+{% block scripts %}
+<style>
+  .auth-container {
+    min-height: 100vh;
+    background: linear-gradient(135deg, var(--bg-primary) 0%, #1e1b4b 100%);
+    position: relative;
+    overflow: hidden;
   }
 
-  usernameInput.addEventListener('input', function() {
+  .auth-bg-animation {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .bg-shapes {
+    position: relative;
+    width: 100%;
+    height: 100%;
+  }
+
+  .shape {
+    position: absolute;
+    border-radius: 50%;
+    background: var(--primary-gradient);
+    opacity: 0.08;
+    animation: float 25s infinite linear;
+  }
+
+  .shape-1 { width: 100px; height: 100px; top: 15%; left: 10%; animation-delay: 0s; }
+  .shape-2 { width: 150px; height: 150px; top: 50%; right: 15%; animation-delay: 6s; }
+  .shape-3 { width: 80px; height: 80px; bottom: 25%; left: 25%; animation-delay: 12s; }
+  .shape-4 { width: 120px; height: 120px; top: 75%; right: 30%; animation-delay: 18s; }
+
+  @keyframes float {
+    0% { transform: translateY(100vh) rotate(0deg) scale(0.8); opacity: 0; }
+    10% { opacity: 0.08; }
+    90% { opacity: 0.08; }
+    100% { transform: translateY(-100px) rotate(360deg) scale(1.2); opacity: 0; }
+  }
+
+  .brand-hero { position: relative; z-index: 2; }
+  .brand-logo {
+    width: 100px; height: 100px;
+    backdrop-filter: blur(20px); border: 2px solid var(--glass-border);
+  }
+  .brand-logo:hover { transform: scale(1.1) rotate(5deg); }
+
+  .brand-title { font-size: 3.5rem; font-weight: 900; letter-spacing: -2px; line-height: 1; }
+
+  .auth-card {
+    backdrop-filter: blur(40px); border: 1px solid var(--glass-border);
+    border-radius: 32px; box-shadow: var(--shadow-lg);
+    position: relative; z-index: 2; overflow: hidden;
+  }
+
+  .auth-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 6px;
+    background: var(--success-gradient);
+  }
+
+  .input-floating-label {
+    color: var(--text-secondary) !important; font-weight: 500 !important;
+    padding: 1rem 1rem 0.5rem 3rem !important; transform-origin: left top;
+    transition: all 0.3s ease;
+  }
+
+  .auth-input:focus ~ .input-floating-label,
+  .auth-input:not(:placeholder-shown) ~ .input-floating-label {
+    transform: scale(0.85) translateY(-1.25rem) translateX(2.5rem);
+    color: #10b981 !important;
+  }
+
+  .input-icon-left { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); z-index: 3; pointer-events: none; font-size: 1.1rem; }
+  .input-icon-right { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); z-index: 3; cursor: pointer; font-size: 1rem; transition: all 0.3s ease; }
+  .input-icon-right:hover { color: #10b981 !important; transform: translateY(-50%) scale(1.1); }
+
+  .btn-primary-glow {
+    background: var(--success-gradient); border: none; font-weight: 700;
+    padding: 1.25rem 3rem; font-size: 1.1rem; border-radius: 16px;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative; overflow: hidden;
+  }
+
+  .btn-primary-glow:hover:not(:disabled) {
+    transform: translateY(-3px); box-shadow: 0 20px 40px rgba(16, 185, 129, 0.4);
+  }
+
+  .btn-primary-glow:disabled {
+    opacity: 0.7; cursor: not-allowed; transform: none;
+  }
+
+  .btn-shimmer {
+    position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    transition: left 0.6s; border-radius: 16px;
+  }
+
+  .btn-primary-glow:hover .btn-shimmer { left: 100%; }
+
+  .btn-loader { position: absolute; right: 1.5rem; }
+
+  .glass-alert {
+    backdrop-filter: blur(20px); border: 1px solid rgba(239, 68, 68, 0.2);
+    background: rgba(254, 226, 226, 0.4); border-radius: 16px;
+  }
+
+  .strength-bar { background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); }
+  .strength-label { color: var(--text-secondary); }
+
+  .divider-with-text {
+    position: relative; text-align: center; color: var(--text-muted);
+  }
+  .divider-with-text::before {
+    content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 1px;
+    background: var(--glass-border);
+  }
+  .divider-text { background: var(--bg-primary); padding: 0 1.5rem; position: relative; }
+
+  .hover-lift:hover { transform: translateY(-2px); }
+
+  .features-preview {
+    backdrop-filter: blur(10px); border-radius: 16px;
+    border: 1px solid var(--glass-border);
+  }
+
+  .features-preview i { color: var(--primary); opacity: 0.8; }
+
+  @keyframes animate-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+  @media (max-width: 768px) {
+    .brand-title { font-size: 2.5rem; }
+    .auth-card { margin: 0 1rem; padding: 2rem 1.5rem; }
+    .input-floating-label { font-size: 0.9rem !important; }
+  }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Enhanced form validation
+  const form = document.getElementById('signup-form');
+  const submitBtn = document.getElementById('signup-submit');
+  const usernameInput = document.getElementById('username');
+  const emailInput = document.getElementById('email');
+  const passwordInput = document.getElementById('password');
+  const feedback = document.getElementById('username-feedback');
+  const suggestionDiv = document.getElementById('username-suggestion');
+  const suggestionLink = document.getElementById('username-suggestion-link');
+  const strengthBar = document.getElementById('password-strength-bar');
+  const strengthText = document.getElementById('password-strength-text');
+  let checkTimeout;
+
+  // Real-time username availability check
+  function checkUsername() {
+    const value = usernameInput.value.trim();
+    if (!value || value.length < 3) {
+      feedback.textContent = '';
+      feedback.className = 'form-text mt-2 pt-2 border-top';
+      return;
+    }
+
+    feedback.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Checking...';
+    feedback.className = 'form-text mt-2 pt-2 border-top text-info';
+
     clearTimeout(checkTimeout);
-    checkTimeout = setTimeout(checkUsername, 300);
-  });
+    checkTimeout = setTimeout(() => {
+      fetch(`/api/check-username?username=${encodeURIComponent(value)}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.available) {
+            feedback.innerHTML = '<i class="fas fa-check-circle text-success me-1"></i> Available';
+            feedback.className = 'form-text mt-2 pt-2 border-top text-success';
+          } else {
+            feedback.innerHTML = '<i class="fas fa-times-circle text-danger me-1"></i> Username taken';
+            feedback.className = 'form-text mt-2 pt-2 border-top text-danger';
+          }
+        })
+        .catch(() => {
+          feedback.innerHTML = '<i class="fas fa-exclamation-triangle text-warning me-1"></i> Error checking';
+          feedback.className = 'form-text mt-2 pt-2 border-top text-warning';
+        });
+    }, 400);
+  }
+
+  usernameInput.addEventListener('input', checkUsername);
   usernameInput.addEventListener('blur', checkUsername);
 
+  // Email username suggestion
   emailInput.addEventListener('blur', function() {
-    var email = emailInput.value.trim();
-    if (!email || email.indexOf('@') === -1) { suggestionDiv.style.display = 'none'; return; }
-    var suggested = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '_').slice(0, 20) || 'user';
+    const email = emailInput.value.trim();
+    if (!email || !email.includes('@')) {
+      suggestionDiv.style.display = 'none';
+      return;
+    }
+    
+    const suggested = email.split('@')[0]
+      .replace(/[^a-zA-Z0-9]/g, '_')
+      .substring(0, 20) || 'user';
+    
     suggestionLink.textContent = suggested;
-    suggestionLink.href = '#'; suggestionLink.onclick = function(e) { e.preventDefault(); usernameInput.value = suggested; checkUsername(); suggestionDiv.style.display = 'none'; };
+    suggestionLink.onclick = (e) => {
+      e.preventDefault();
+      usernameInput.value = suggested;
+      checkUsername();
+      suggestionDiv.style.display = 'none';
+    };
     suggestionDiv.style.display = 'block';
   });
 
-  function scorePassword(p) {
-    var s = 0;
-    if (p.length >= 4) s += 20;
-    if (p.length >= 6) s += 20;
-    if (p.length >= 8) s += 20;
-    if (/[a-z]/.test(p) && /[A-Z]/.test(p)) s += 15;
-    if (/\d/.test(p)) s += 15;
-    if (/[^a-zA-Z0-9]/.test(p)) s += 10;
-    return Math.min(100, s);
+  // Advanced password strength
+  function scorePassword(password) {
+    let score = 0;
+    if (!password) return score;
+
+    // Length
+    if (password.length >= 8) score += 25;
+    else if (password.length >= 6) score += 15;
+    else if (password.length >= 4) score += 10;
+
+    // Variety
+    if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score += 20;
+    if (/\d/.test(password)) score += 15;
+    if (/[^a-zA-Z0-9]/.test(password)) score += 15;
+
+    // Patterns
+    if (password.toLowerCase() === password || password === password.toUpperCase()) score -= 10;
+    if (/(.)\1{2,}/.test(password)) score -= 10;
+
+    return Math.max(0, Math.min(100, score));
   }
-  passwordInput.addEventListener('input', function() {
-    var s = scorePassword(passwordInput.value);
-    strengthBar.style.width = s + '%';
-    if (s < 40) { strengthBar.className = 'progress-bar bg-danger'; strengthText.textContent = 'Weak'; }
-    else if (s < 70) { strengthBar.className = 'progress-bar bg-warning'; strengthText.textContent = 'Medium'; }
-    else { strengthBar.className = 'progress-bar bg-success'; strengthText.textContent = 'Strong'; }
+
+  function updatePasswordStrength() {
+    const password = passwordInput.value;
+    const score = scorePassword(password);
+    
+    strengthBar.style.width = score + '%';
+    
+    if (score < 40) {
+      strengthBar.className = 'progress-bar bg-danger';
+      strengthText.innerHTML = '<i class="fas fa-times-circle text-danger me-1"></i>Too weak';
+    } else if (score < 70) {
+      strengthBar.className = 'progress-bar bg-warning';
+      strengthText.innerHTML = '<i class="fas fa-exclamation-triangle text-warning me-1"></i>Medium';
+    } else {
+      strengthBar.className = 'progress-bar bg-success';
+      strengthText.innerHTML = '<i class="fas fa-check-circle text-success me-1"></i>Strong';
+    }
+  }
+
+  passwordInput.addEventListener('input', updatePasswordStrength);
+
+  // Password visibility toggle
+  document.querySelector('.toggle-password')?.addEventListener('click', function() {
+    const target = document.getElementById(this.dataset.target);
+    const type = target.getAttribute('type') === 'password' ? 'text' : 'password';
+    target.setAttribute('type', type);
+    this.classList.toggle('fa-eye-slash');
+    this.classList.toggle('fa-eye');
   });
-})();
+
+  // Form validation + submit handler
+  form.addEventListener('submit', function(e) {
+    if (!form.checkValidity()) {
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    }
+
+    // Enable/disable submit based on validation
+    const isValid = usernameInput.value.length >= 3 && 
+                   passwordInput.value.length >= 6 &&
+                   scorePassword(passwordInput.value) >= 40;
+    
+    submitBtn.disabled = !isValid;
+  });
+
+  // Real-time submit button state
+  ['input', 'blur'].forEach(event => {
+    [usernameInput, passwordInput].forEach(input => {
+      input.addEventListener(event, () => {
+        const isValid = usernameInput.value.length >= 3 && 
+                       passwordInput.value.length >= 6 &&
+                       scorePassword(passwordInput.value) >= 40;
+        submitBtn.disabled = !isValid;
+        if (isValid) {
+          submitBtn.classList.remove('btn-outline-secondary');
+          submitBtn.classList.add('btn-primary-glow');
+        } else {
+          submitBtn.classList.add('btn-outline-secondary');
+          submitBtn.classList.remove('btn-primary-glow');
+        }
+      });
+    });
+  });
+
+  // Form submission with loading state
+  form.addEventListener('submit', function(e) {
+    if (!form.checkValidity()) return;
+    
+    const btnContent = submitBtn.querySelector('.btn-content');
+    const btnText = submitBtn.querySelector('.btn-text');
+    const btnLoader = submitBtn.querySelector('.btn-loader');
+    
+    btnText.textContent = 'Creating...';
+    btnLoader.classList.remove('d-none');
+    submitBtn.disabled = true;
+  });
+});
 </script>
 {% endblock %}

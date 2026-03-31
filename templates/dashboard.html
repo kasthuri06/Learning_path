@@ -1,314 +1,464 @@
 {% extends "base.html" %}
-{% block title %}Dashboard - AI Learning Platform{% endblock %}
+{% block title %}Dashboard – AI Learning Platform{% endblock %}
 {% block content %}
-<h1 class="app-title mb-2">Dashboard</h1>
-<p class="app-subtitle mb-4">Welcome back, <strong>{{ username }}</strong>.</p>
 
-<section class="mb-5">
-  <h2 class="app-section-title">Your learning paths</h2>
+<!-- Hero -->
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+  <div>
+    <h1 class="dash-title mb-1">Welcome back, <span class="grad-text">{{ username }}</span> 👋</h1>
+    <p class="text-muted mb-0">Here's your learning snapshot for today.</p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <span class="dash-badge"><i class="fas fa-fire text-warning me-1"></i>{{ streak }} day streak</span>
+    <span class="dash-badge"><i class="fas fa-star text-warning me-1"></i>{{ xp }} XP</span>
+    <a href="/profile" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+      <i class="fas fa-user me-1"></i>Profile
+    </a>
+  </div>
+</div>
+
+<!-- Quick Stats -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="dash-stat-card">
+      <div class="dash-stat-icon" style="background:rgba(99,102,241,.15);color:#6366f1"><i class="fas fa-route"></i></div>
+      <div class="dash-stat-val">{{ paths|length }}</div>
+      <div class="dash-stat-lbl">Active Paths</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="dash-stat-card">
+      <div class="dash-stat-icon" style="background:rgba(16,185,129,.15);color:#10b981"><i class="fas fa-check-circle"></i></div>
+      <div class="dash-stat-val">{{ completed_topics }}</div>
+      <div class="dash-stat-lbl">Topics Done</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="dash-stat-card">
+      <div class="dash-stat-icon" style="background:rgba(245,158,11,.15);color:#f59e0b"><i class="fas fa-fire"></i></div>
+      <div class="dash-stat-val">{{ streak }}</div>
+      <div class="dash-stat-lbl">Day Streak</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="dash-stat-card">
+      <div class="dash-stat-icon" style="background:rgba(59,130,246,.15);color:#3b82f6"><i class="fas fa-percentage"></i></div>
+      <div class="dash-stat-val">{{ progress_pct }}%</div>
+      <div class="dash-stat-lbl">Overall Progress</div>
+    </div>
+  </div>
+</div>
+
+<!-- Active Learning Paths -->
+<section class="mb-4">
+  <div class="dash-section-header">
+    <h5 class="dash-section-title"><i class="fas fa-route text-primary me-2"></i>Active Paths</h5>
+    <a href="{{ url_for('generate') }}" class="btn btn-sm btn-primary rounded-pill px-3">
+      <i class="fas fa-plus me-1"></i>New Path
+    </a>
+  </div>
   {% if paths %}
-  <div class="row g-3 mb-4">
+  <div class="row g-3">
     {% for p in paths %}
-    <div class="col-md-6 col-lg-4">
-      <div class="app-stat-card app-path-card card h-100">
-        <div class="card-body d-flex flex-column">
-          <h5 class="card-title">{{ p.name }}</h5>
-          <p class="text-muted small mb-1">{{ p.domain }} · {{ p.target_role }}</p>
-          <p class="mb-2"><strong>{{ p.progress_pct }}%</strong> ({{ p.completed_topics }}/{{ p.total_topics }} topics)</p>
-          <div class="mt-auto d-flex gap-2">
-            <a href="{{ url_for('roadmap', roadmap_id=p.id) }}" class="btn app-btn-primary btn-sm">Open</a>
-            <button type="button" class="btn app-btn-ghost btn-sm archive-btn" data-roadmap-id="{{ p.id }}">Archive</button>
+    <div class="col-md-6 col-xl-4">
+      <div class="path-card">
+        <div class="path-card-top">
+          <div class="path-icon-wrap">
+            <i class="fas fa-{{ 'brain' if 'AI' in p.domain else 'code' if 'Dev' in p.domain else 'book' }}"></i>
+          </div>
+          <div class="flex-grow-1 min-w-0">
+            <div class="path-name">{{ p.name }}</div>
+            <div class="path-meta">
+              <span class="tag tag-primary">{{ p.domain }}</span>
+              <span class="tag tag-secondary">{{ p.target_role }}</span>
+            </div>
+          </div>
+          <button class="btn btn-sm btn-ghost archive-btn" data-roadmap-id="{{ p.id }}" title="Archive">
+            <i class="fas fa-archive text-muted"></i>
+          </button>
+        </div>
+        <div class="path-progress-wrap">
+          <div class="d-flex justify-content-between mb-1 small text-muted">
+            <span>{{ p.completed_topics }}/{{ p.total_topics }} topics</span>
+            <span class="fw-semibold">{{ p.progress_pct }}%</span>
+          </div>
+          <div class="progress" style="height:6px;border-radius:99px;background:rgba(255,255,255,.1)">
+            <div class="progress-bar" data-width="{{ p.progress_pct }}"
+              style="background:linear-gradient(90deg,#6366f1,#8b5cf6);border-radius:99px"
+              role="progressbar" aria-valuenow="{{ p.progress_pct }}" aria-valuemin="0" aria-valuemax="100"></div>
           </div>
         </div>
+        <a href="{{ url_for('roadmap', roadmap_id=p.id) }}" class="btn btn-sm btn-primary w-100 rounded-pill mt-3">
+          <i class="fas fa-eye me-1"></i>Open Roadmap
+        </a>
       </div>
     </div>
     {% endfor %}
   </div>
   {% else %}
-  <p class="app-subtitle mb-3">No paths yet. <a href="{{ url_for('generate') }}">Generate a learning path</a> to get started.</p>
-  {% endif %}
-  {% if archived_paths %}
-  <details class="mt-3">
-    <summary class="app-label" style="cursor:pointer;">Archived paths ({{ archived_paths|length }})</summary>
-    <ul class="list-unstyled mt-2">
-      {% for p in archived_paths %}
-      <li class="d-flex align-items-center gap-2 py-1">
-        <a href="{{ url_for('roadmap', roadmap_id=p.id) }}">{{ p.name }}</a>
-        <button type="button" class="btn btn-sm btn-outline-secondary unarchive-btn" data-roadmap-id="{{ p.id }}">Restore</button>
-      </li>
-      {% endfor %}
-    </ul>
-  </details>
+  <div class="empty-card text-center py-5">
+    <i class="fas fa-graduation-cap fs-1 text-muted mb-3 d-block"></i>
+    <p class="text-muted mb-3">No active paths yet. Start your first journey.</p>
+    <a href="{{ url_for('generate') }}" class="btn btn-primary rounded-pill px-4">
+      <i class="fas fa-magic me-2"></i>Generate My First Path
+    </a>
+  </div>
   {% endif %}
 </section>
 
-<section class="mb-5">
-  <h2 class="app-section-title">Learning analytics</h2>
-  <div class="row g-3">
-    <div class="col-md-3">
-      <div class="app-stat-card">
-        <div class="app-stat-label">Total topics in roadmap</div>
-        <div class="app-stat-value">{{ total_topics }}</div>
-      </div>
-    </div>
-    <div class="col-md-3">
-      <div class="app-stat-card">
-        <div class="app-stat-label">Completed topics</div>
-        <div class="app-stat-value">{{ completed_topics }}</div>
-      </div>
-    </div>
-    <div class="col-md-3">
-      <div class="app-stat-card">
-        <div class="app-stat-label">Progress</div>
-        <div class="app-stat-value">{{ progress_pct }}%</div>
-      </div>
-    </div>
-    <div class="col-md-3">
-      <div class="app-stat-card app-stat-card--streak">
-        <div class="app-stat-label">Learning streak</div>
-        <div class="app-stat-value">🔥 {{ streak }} day{% if streak != 1 %}s{% endif %}</div>
-      </div>
-    </div>
+<!-- Completed Paths -->
+{% set completed_paths = paths | selectattr('progress_pct', 'equalto', 100) | list %}
+{% if completed_paths %}
+<section class="mb-4">
+  <div class="dash-section-header">
+    <h5 class="dash-section-title"><i class="fas fa-trophy text-warning me-2"></i>Completed Paths</h5>
   </div>
-</section>
-
-<section class="mb-5">
   <div class="row g-3">
-    <div class="col-lg-6">
-      <div class="app-chart-card card h-100">
-        <div class="card-header d-flex justify-content-between align-items-center">
-          <span>Next best topics</span>
-          <a href="{{ url_for('roadmap') }}" class="btn btn-sm app-btn-ghost">Open roadmap</a>
-        </div>
-        <div class="card-body">
-          {% if next_topics %}
-          <ul class="list-unstyled mb-0">
-            {% for t in next_topics %}
-            <li class="py-2 d-flex align-items-center justify-content-between">
-              <div>
-                <div class="fw-semibold">{{ t.topic }}</div>
-                <div class="text-muted small">{{ t.path_name }}</div>
-              </div>
-              <a class="btn btn-sm app-btn-primary" href="{{ url_for('roadmap', roadmap_id=t.roadmap_id) }}">Start</a>
-            </li>
-            {% endfor %}
-          </ul>
-          {% else %}
-          <div class="text-muted">No suggestions yet.</div>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-    <div class="col-lg-6">
-      <div class="app-chart-card card h-100">
-        <div class="card-header">Reviews due today</div>
-        <div class="card-body">
-          {% if due_reviews %}
-          <ul class="list-unstyled mb-0" id="due-reviews-list">
-            {% for r in due_reviews %}
-            <li class="py-2 d-flex align-items-center justify-content-between" data-review-id="{{ r.id }}">
-              <div>
-                <div class="fw-semibold">{{ r.topic }}</div>
-                <div class="text-muted small">{{ r.path_name }} · Due {{ r.due_date }}</div>
-              </div>
-              <button type="button" class="btn btn-sm app-btn-success review-done-btn" data-review-id="{{ r.id }}">Done</button>
-            </li>
-            {% endfor %}
-          </ul>
-          {% else %}
-          <div class="text-muted">No reviews due today.</div>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="mb-5">
-  <div class="row g-3">
-    <div class="col-lg-6">
-      <div class="app-chart-card card h-100">
-        <div class="card-header d-flex justify-content-between align-items-center">
-          <span>This week’s focus</span>
-          <a href="{{ url_for('roadmap') }}" class="btn btn-sm app-btn-ghost">Manage</a>
-        </div>
-        <div class="card-body">
-          {% if weekly_focus %}
-          <ul class="list-unstyled mb-0">
-            {% for f in weekly_focus %}
-            <li class="py-2 d-flex align-items-center justify-content-between">
-              <div>
-                <div class="fw-semibold">{{ f.topic }}</div>
-                <div class="text-muted small">{{ f.path_name }}</div>
-              </div>
-              <a class="btn btn-sm app-btn-ghost" href="{{ url_for('roadmap', roadmap_id=f.roadmap_id) }}">Open</a>
-            </li>
-            {% endfor %}
-          </ul>
-          {% else %}
-          <div class="text-muted">No topics selected for this week.</div>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-    <div class="col-lg-6">
-      <div class="app-chart-card card h-100">
-        <div class="card-header">Gamification</div>
-        <div class="card-body">
-          <div class="mb-2"><span class="fw-semibold">XP:</span> {{ xp }}</div>
-          {% if badges %}
-          <div class="mb-1"><span class="fw-semibold">Badges:</span></div>
-          <div class="d-flex flex-wrap gap-2">
-            {% for b in badges %}
-            <span class="badge bg-primary-subtle text-primary border">{{ b }}</span>
-            {% endfor %}
+    {% for p in completed_paths %}
+    <div class="col-md-6 col-xl-4">
+      <div class="path-card completed-path-card">
+        <div class="path-card-top">
+          <div class="path-icon-wrap" style="background:rgba(16,185,129,.2);color:#10b981">
+            <i class="fas fa-check-circle"></i>
           </div>
-          {% else %}
-          <div class="text-muted">No badges yet. Keep learning to earn them!</div>
-          {% endif %}
+          <div class="flex-grow-1 min-w-0">
+            <div class="path-name">{{ p.name }}</div>
+            <div class="path-meta">
+              <span class="tag tag-success">Completed</span>
+              <span class="tag tag-secondary">{{ p.domain }}</span>
+            </div>
+          </div>
         </div>
+        <div class="d-flex align-items-center gap-2 mt-2">
+          <div class="progress flex-grow-1" style="height:6px;border-radius:99px;background:rgba(255,255,255,.1)">
+            <div class="progress-bar" style="width:100%;background:linear-gradient(90deg,#10b981,#34d399);border-radius:99px"></div>
+          </div>
+          <span class="small fw-bold text-success">100%</span>
+        </div>
+        <a href="{{ url_for('roadmap', roadmap_id=p.id) }}" class="btn btn-sm btn-outline-success w-100 rounded-pill mt-3">
+          <i class="fas fa-eye me-1"></i>Review Path
+        </a>
       </div>
     </div>
+    {% endfor %}
   </div>
 </section>
+{% endif %}
 
-<section class="mb-5">
-  <h2 class="app-section-title">Charts</h2>
-  <div class="row">
-    <div class="col-lg-6 mb-4">
-      <div class="app-chart-card card">
-        <div class="card-header">Completion percentage</div>
-        <div class="card-body">
-          <canvas id="progressChart" width="300" height="200"></canvas>
+<!-- Archived Paths -->
+{% if archived_paths %}
+<section class="mb-4">
+  <details class="empty-card p-3">
+    <summary class="d-flex align-items-center gap-2 fw-semibold text-muted" style="cursor:pointer;list-style:none">
+      <i class="fas fa-archive"></i> Archived ({{ archived_paths|length }})
+    </summary>
+    <div class="row g-3 mt-2">
+      {% for p in archived_paths %}
+      <div class="col-md-6 col-xl-4">
+        <div class="path-card" style="opacity:.7">
+          <div class="d-flex align-items-center gap-3">
+            <div class="path-icon-wrap"><i class="fas fa-book"></i></div>
+            <div class="flex-grow-1 min-w-0">
+              <div class="path-name">{{ p.name }}</div>
+              <small class="text-muted">{{ p.domain }}</small>
+            </div>
+            <button class="btn btn-sm btn-outline-primary rounded-pill unarchive-btn" data-roadmap-id="{{ p.id }}">
+              <i class="fas fa-undo me-1"></i>Restore
+            </button>
+          </div>
         </div>
       </div>
+      {% endfor %}
     </div>
-    <div class="col-lg-6 mb-4">
-      <div class="app-chart-card card">
-        <div class="card-header">Topics completed per week</div>
-        <div class="card-body">
-          <canvas id="weeklyChart" width="300" height="200"></canvas>
-        </div>
+  </details>
+</section>
+{% endif %}
+
+<!-- Insights Row -->
+<div class="row g-3 mb-4">
+  <div class="col-lg-6">
+    <div class="dash-card h-100">
+      <div class="dash-card-header">
+        <span><i class="fas fa-lightbulb text-warning me-2"></i>Next Best Topics</span>
+        <a href="{{ url_for('roadmap') }}" class="btn btn-xs btn-ghost">View All</a>
       </div>
+      {% if next_topics %}
+      {% for t in next_topics %}
+      <a href="{{ url_for('roadmap', roadmap_id=t.roadmap_id) }}" class="insight-row">
+        <i class="fas fa-play-circle text-primary"></i>
+        <div class="flex-grow-1 min-w-0">
+          <div class="fw-semibold text-truncate">{{ t.topic }}</div>
+          <small class="text-muted">{{ t.path_name }}</small>
+        </div>
+        <i class="fas fa-chevron-right text-muted small"></i>
+      </a>
+      {% endfor %}
+      {% else %}
+      <div class="text-center py-4 text-muted">
+        <i class="fas fa-brain fs-2 mb-2 d-block opacity-50"></i>Complete topics to get recommendations
+      </div>
+      {% endif %}
     </div>
   </div>
-</section>
-
-<div class="app-cta">
-  <strong>Next:</strong> <a href="{{ url_for('generate') }}">Generate a learning path</a> or view <a href="{{ url_for('roadmap') }}">your roadmap</a>.
+  <div class="col-lg-6">
+    <div class="dash-card h-100">
+      <div class="dash-card-header">
+        <span><i class="fas fa-clock text-info me-2"></i>Reviews Due Today</span>
+      </div>
+      {% if due_reviews %}
+      {% for r in due_reviews %}
+      <div class="insight-row" data-review-id="{{ r.id }}">
+        <i class="fas fa-brain text-info"></i>
+        <div class="flex-grow-1 min-w-0">
+          <div class="fw-semibold text-truncate">{{ r.topic }}</div>
+          <small class="text-muted">{{ r.path_name }} · Due {{ r.due_date }}</small>
+        </div>
+        <button class="btn btn-xs btn-success review-done-btn" data-review-id="{{ r.id }}">
+          <i class="fas fa-check"></i>
+        </button>
+      </div>
+      {% endfor %}
+      {% else %}
+      <div class="text-center py-4 text-muted">
+        <i class="fas fa-check-circle fs-2 mb-2 d-block text-success opacity-75"></i>All caught up!
+      </div>
+      {% endif %}
+    </div>
+  </div>
 </div>
+
+<!-- Progress Visualization -->
+<div class="row g-3 mb-4">
+  <div class="col-lg-5">
+    <div class="dash-card h-100">
+      <div class="dash-card-header"><span><i class="fas fa-circle-half-stroke text-primary me-2"></i>Overall Completion</span></div>
+      <div class="chart-wrap"><canvas id="progressChart" data-progress="{{ progress_pct }}"></canvas></div>
+    </div>
+  </div>
+  <div class="col-lg-7">
+    <div class="dash-card h-100">
+      <div class="dash-card-header"><span><i class="fas fa-chart-radar text-success me-2"></i>Path Progress Radar</span></div>
+      <div class="chart-wrap"><canvas id="radarChart" data-paths='{{ paths | tojson }}'></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- Activity Heatmap (Streak Calendar) -->
+<section class="mb-4">
+  <div class="dash-card">
+    <div class="dash-card-header">
+      <span><i class="fas fa-calendar-check text-warning me-2"></i>Activity Streak</span>
+      <span class="text-muted small">Last 12 weeks</span>
+    </div>
+    <div id="heatmap-container" class="heatmap-wrap" data-activity='{{ weekly_data | tojson }}'></div>
+    <div class="heatmap-legend">
+      <span class="text-muted small me-2">Less</span>
+      <span class="hm-cell" style="background:rgba(99,102,241,.1)"></span>
+      <span class="hm-cell" style="background:rgba(99,102,241,.3)"></span>
+      <span class="hm-cell" style="background:rgba(99,102,241,.55)"></span>
+      <span class="hm-cell" style="background:rgba(99,102,241,.8)"></span>
+      <span class="hm-cell" style="background:#6366f1"></span>
+      <span class="text-muted small ms-2">More</span>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<div class="d-flex gap-3 flex-wrap justify-content-center py-3 mb-2">
+  <a href="{{ url_for('generate') }}" class="btn btn-primary rounded-pill px-4">
+    <i class="fas fa-magic me-2"></i>New Path
+  </a>
+  <a href="{{ url_for('compare') }}" class="btn btn-outline-primary rounded-pill px-4">
+    <i class="fas fa-balance-scale me-2"></i>Compare
+  </a>
+  <a href="{{ url_for('roadmap') }}" class="btn btn-outline-success rounded-pill px-4">
+    <i class="fas fa-map me-2"></i>Roadmaps
+  </a>
+</div>
+
 {% endblock %}
-
 {% block scripts %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.js"></script>
+<style>
+:root {
+  --glass-bg: rgba(255,255,255,.06);
+  --glass-border: rgba(255,255,255,.1);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,.25);
+  --primary-gradient: linear-gradient(135deg,#667eea,#764ba2);
+  --secondary-gradient: linear-gradient(135deg,#f093fb,#f5576c);
+  --success-gradient: linear-gradient(135deg,#4facfe,#00f2fe);
+}
+.dash-title { font-size: clamp(1.4rem,3vw,2rem); font-weight:800; letter-spacing:-.02em; }
+.grad-text { background:var(--primary-gradient);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent; }
+.dash-badge { display:inline-flex;align-items:center;gap:.35rem;padding:.35rem .85rem;border-radius:99px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);font-size:.85rem;font-weight:600; }
+.dash-stat-card { background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:16px;padding:1.1rem 1rem;display:flex;flex-direction:column;align-items:center;gap:.4rem;text-align:center;transition:transform .2s; }
+.dash-stat-card:hover { transform:translateY(-3px); }
+.dash-stat-icon { width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.1rem; }
+.dash-stat-val { font-size:1.6rem;font-weight:800;line-height:1; }
+.dash-stat-lbl { font-size:.75rem;color:#94a3b8;font-weight:500; }
+.dash-section-header { display:flex;align-items:center;justify-content:space-between;margin-bottom:.85rem; }
+.dash-section-title { font-size:1rem;font-weight:700;margin:0; }
+.path-card { background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:16px;padding:1.1rem;transition:transform .2s,box-shadow .2s; }
+.path-card:hover { transform:translateY(-3px);box-shadow:0 12px 32px rgba(0,0,0,.2); }
+.completed-path-card { border-color:rgba(16,185,129,.25); }
+.path-card-top { display:flex;align-items:flex-start;gap:.75rem;margin-bottom:.75rem; }
+.path-icon-wrap { width:38px;height:38px;border-radius:10px;background:rgba(99,102,241,.15);color:#6366f1;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1rem; }
+.path-name { font-weight:700;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.path-meta { display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.25rem; }
+.tag { font-size:.7rem;padding:.2rem .55rem;border-radius:99px;font-weight:600; }
+.tag-primary { background:rgba(99,102,241,.2);color:#818cf8; }
+.tag-secondary { background:rgba(148,163,184,.15);color:#94a3b8; }
+.tag-success { background:rgba(16,185,129,.2);color:#34d399; }
+.path-progress-wrap { margin-top:.5rem; }
+.dash-card { background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:16px;overflow:hidden; }
+.dash-card-header { display:flex;align-items:center;justify-content:space-between;padding:.85rem 1.1rem;border-bottom:1px solid rgba(255,255,255,.07);font-weight:600;font-size:.9rem; }
+.insight-row { display:flex;align-items:center;gap:.75rem;padding:.75rem 1.1rem;border-bottom:1px solid rgba(255,255,255,.05);text-decoration:none;color:inherit;transition:background .15s; }
+.insight-row:last-child { border-bottom:none; }
+.insight-row:hover { background:rgba(255,255,255,.04); }
+.chart-wrap { padding:1rem;height:220px;position:relative; }
+.empty-card { background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:1.5rem; }
+.btn-ghost { background:transparent;border:1px solid rgba(255,255,255,.12);color:#94a3b8;font-size:.8rem;padding:.25rem .65rem;border-radius:8px; }
+.btn-ghost:hover { background:rgba(255,255,255,.07);color:#f8fafc; }
+.btn-xs { font-size:.75rem;padding:.25rem .6rem;border-radius:8px; }
+.btn-success.btn-xs { background:#10b981;border:none;color:#fff; }
+.heatmap-wrap { padding:1rem 1.1rem;overflow-x:auto; }
+.heatmap-grid { display:flex;gap:3px; }
+.hm-col { display:flex;flex-direction:column;gap:3px; }
+.hm-cell { width:13px;height:13px;border-radius:3px;background:rgba(99,102,241,.08); }
+.hm-cell.lv1 { background:rgba(99,102,241,.25); }
+.hm-cell.lv2 { background:rgba(99,102,241,.5); }
+.hm-cell.lv3 { background:rgba(99,102,241,.75); }
+.hm-cell.lv4 { background:#6366f1; }
+.heatmap-legend { display:flex;align-items:center;gap:4px;padding:.5rem 1.1rem 1rem;justify-content:flex-end; }
+.heatmap-legend .hm-cell { width:13px;height:13px;border-radius:3px; }
+@media(max-width:576px){
+  .dash-stat-val{font-size:1.3rem;}
+  .chart-wrap{height:180px;}
+}
+</style>
 <script>
-(function () {
-  const cs = getComputedStyle(document.body);
-  const primary = cs.getPropertyValue('--app-primary').trim() || '#4F46E5';
-  const secondary = cs.getPropertyValue('--app-secondary').trim() || '#6366F1';
-  const muted = cs.getPropertyValue('--app-text-muted').trim() || '#334155';
-  const text = cs.getPropertyValue('--app-text').trim() || '#F8FAFC';
-  const grid = (cs.getPropertyValue('--app-border').trim() || '#334155') + '55';
+document.addEventListener('DOMContentLoaded', function () {
+  // Progress bars
+  document.querySelectorAll('.progress-bar[data-width]').forEach(b => b.style.width = b.dataset.width + '%');
 
-  const progressCtx = document.getElementById('progressChart').getContext('2d');
-  var progressChart = new Chart(progressCtx, {
-    type: 'doughnut',
-    data: {
-      labels: ['Completed', 'Remaining'],
-      datasets: [{
-        data: [{{ progress_pct }}, {{ 100 - progress_pct }}],
-        backgroundColor: [secondary, muted],
-        borderColor: '#1E293B',
-        borderWidth: 2
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { position: 'bottom', labels: { color: text, padding: 16 } }
-      }
-    }
-  });
-
-  const weeklyData = {{ weekly_data | tojson }};
-  const weeklyCtx = document.getElementById('weeklyChart').getContext('2d');
-  var weeklyChart = new Chart(weeklyCtx, {
-    type: 'bar',
-    data: {
-      labels: weeklyData.map(function (d) { return d.week; }),
-      datasets: [{
-        label: 'Completions',
-        data: weeklyData.map(function (d) { return d.count; }),
-        backgroundColor: secondary + 'B3',
-        borderColor: secondary,
-        borderWidth: 1
-      }]
-    },
-    options: {
-      responsive: true,
-      scales: {
-        y: { beginAtZero: true, grid: { color: grid }, ticks: { stepSize: 1, color: text } },
-        x: { grid: { color: grid }, ticks: { color: text } }
-      },
-      plugins: { legend: { display: false } }
-    }
-  });
-  function rebuildCharts() {
-    try { progressChart.destroy(); weeklyChart.destroy(); } catch (e) {}
-    const cs2 = getComputedStyle(document.body);
-    const secondary2 = cs2.getPropertyValue('--app-secondary').trim() || '#6366F1';
-    const muted2 = cs2.getPropertyValue('--app-text-muted').trim() || '#334155';
-    const text2 = cs2.getPropertyValue('--app-text').trim() || '#F8FAFC';
-    const grid2 = (cs2.getPropertyValue('--app-border').trim() || '#334155') + '55';
-    progressChart = new Chart(progressCtx, {
+  // Doughnut
+  const pCtx = document.getElementById('progressChart');
+  if (pCtx) {
+    const pct = parseFloat(pCtx.dataset.progress) || 0;
+    new Chart(pCtx, {
       type: 'doughnut',
       data: {
         labels: ['Completed', 'Remaining'],
-        datasets: [{ data: [{{ progress_pct }}, {{ 100 - progress_pct }}], backgroundColor: [secondary2, muted2], borderColor: '#1E293B', borderWidth: 2 }]
+        datasets: [{ data: [pct, 100 - pct], backgroundColor: ['#6366f1', 'rgba(255,255,255,.08)'], borderWidth: 0, cutout: '72%' }]
       },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: text2, padding: 16 } } } }
-    });
-    weeklyChart = new Chart(weeklyCtx, {
-      type: 'bar',
-      data: {
-        labels: weeklyData.map(function (d) { return d.week; }),
-        datasets: [{ label: 'Completions', data: weeklyData.map(function (d) { return d.count; }), backgroundColor: secondary2 + 'B3', borderColor: secondary2, borderWidth: 1 }]
-      },
-      options: { responsive: true, scales: { y: { beginAtZero: true, grid: { color: grid2 }, ticks: { stepSize: 1, color: text2 } }, x: { grid: { color: grid2 }, ticks: { color: text2 } } }, plugins: { legend: { display: false } } }
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { color: '#94a3b8', padding: 16, usePointStyle: true } },
+          tooltip: { callbacks: { label: ctx => ` ${ctx.parsed}%` } }
+        }
+      }
     });
   }
-  document.addEventListener('app-theme-changed', rebuildCharts);
-})();
-</script>
-<script>
-document.querySelectorAll('.archive-btn').forEach(function(btn) {
-  btn.addEventListener('click', function() {
-    var id = this.getAttribute('data-roadmap-id');
-    fetch('/api/archive_path', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ roadmap_id: parseInt(id), archived: 1 }) })
-      .then(function(r) { return r.json(); })
-      .then(function(d) { if (d.ok) window.location.reload(); });
-  });
-});
-document.querySelectorAll('.unarchive-btn').forEach(function(btn) {
-  btn.addEventListener('click', function() {
-    var id = this.getAttribute('data-roadmap-id');
-    fetch('/api/archive_path', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ roadmap_id: parseInt(id), archived: 0 }) })
-      .then(function(r) { return r.json(); })
-      .then(function(d) { if (d.ok) window.location.reload(); });
-  });
-});
-document.querySelectorAll('.review-done-btn').forEach(function(btn) {
-  btn.addEventListener('click', function() {
-    var id = parseInt(this.getAttribute('data-review-id'));
-    fetch('/api/review_complete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ review_id: id }) })
-      .then(function(r) { return r.json(); })
-      .then(function(d) {
-        if (d.ok) {
-          var li = document.querySelector('li[data-review-id="'+id+'"]');
-          if (li) li.remove();
+
+  // Radar chart for path progress
+  const rCtx = document.getElementById('radarChart');
+  if (rCtx) {
+    const paths = JSON.parse(rCtx.dataset.paths || '[]');
+    if (paths.length) {
+      new Chart(rCtx, {
+        type: 'radar',
+        data: {
+          labels: paths.map(p => p.name.length > 14 ? p.name.slice(0, 14) + '…' : p.name),
+          datasets: [{
+            label: 'Progress %',
+            data: paths.map(p => p.progress_pct),
+            backgroundColor: 'rgba(99,102,241,.2)',
+            borderColor: '#6366f1',
+            pointBackgroundColor: '#6366f1',
+            pointRadius: 4,
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          scales: { r: { min: 0, max: 100, ticks: { color: '#64748b', stepSize: 25, backdropColor: 'transparent' }, grid: { color: 'rgba(255,255,255,.08)' }, pointLabels: { color: '#94a3b8', font: { size: 11 } } } },
+          plugins: { legend: { display: false } }
         }
       });
+    } else {
+      rCtx.parentElement.innerHTML = '<div class="text-center py-4 text-muted"><i class="fas fa-chart-radar fs-2 mb-2 d-block opacity-50"></i>Add paths to see radar</div>';
+    }
+  }
+
+  // Heatmap — build 12-week calendar from weekly_data
+  const hm = document.getElementById('heatmap-container');
+  if (hm) {
+    const weeklyData = JSON.parse(hm.dataset.activity || '[]');
+    const countMap = {};
+    weeklyData.forEach(d => { countMap[d.week] = d.count; });
+    const maxVal = Math.max(1, ...Object.values(countMap));
+    const today = new Date();
+    const grid = document.createElement('div');
+    grid.className = 'heatmap-grid';
+    // Day labels column
+    const dayLabels = ['', 'Mon', '', 'Wed', '', 'Fri', ''];
+    const lblCol = document.createElement('div');
+    lblCol.className = 'hm-col me-1';
+    lblCol.style.cssText = 'gap:3px;justify-content:space-around;';
+    dayLabels.forEach(l => {
+      const s = document.createElement('span');
+      s.style.cssText = 'font-size:9px;color:#64748b;height:13px;display:flex;align-items:center;';
+      s.textContent = l;
+      lblCol.appendChild(s);
+    });
+    grid.appendChild(lblCol);
+    // 12 weeks back
+    for (let w = 11; w >= 0; w--) {
+      const col = document.createElement('div');
+      col.className = 'hm-col';
+      for (let d = 6; d >= 0; d--) {
+        const date = new Date(today);
+        date.setDate(today.getDate() - w * 7 - d);
+        const yr = date.getFullYear();
+        // ISO week
+        const tmp = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+        tmp.setUTCDate(tmp.getUTCDate() + 4 - (tmp.getUTCDay() || 7));
+        const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
+        const wk = Math.ceil((((tmp - yearStart) / 86400000) + 1) / 7);
+        const key = `${tmp.getUTCFullYear()}-W${String(wk).padStart(2,'0')}`;
+        const cnt = countMap[key] || 0;
+        const cell = document.createElement('div');
+        cell.className = 'hm-cell' + (cnt === 0 ? '' : cnt / maxVal < .25 ? ' lv1' : cnt / maxVal < .5 ? ' lv2' : cnt / maxVal < .75 ? ' lv3' : ' lv4');
+        cell.title = `${date.toDateString()}: ${cnt} topic${cnt !== 1 ? 's' : ''}`;
+        col.appendChild(cell);
+      }
+      grid.appendChild(col);
+    }
+    hm.appendChild(grid);
+  }
+
+  // Archive/Unarchive
+  document.querySelectorAll('.archive-btn,.unarchive-btn').forEach(btn => {
+    btn.addEventListener('click', function () {
+      const id = this.dataset.roadmapId;
+      const isArchive = this.classList.contains('archive-btn');
+      fetch('/api/archive_path', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ roadmap_id: parseInt(id), archived: isArchive ? 1 : 0 }) })
+        .then(r => r.json()).then(d => { if (d.ok) location.reload(); });
+    });
+  });
+
+  // Review done
+  document.querySelectorAll('.review-done-btn').forEach(btn => {
+    btn.addEventListener('click', function () {
+      fetch('/api/review_complete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ review_id: parseInt(this.dataset.reviewId) }) })
+        .then(r => r.json()).then(d => {
+          if (d.ok) {
+            const row = this.closest('.insight-row');
+            if (row) row.remove();
+          }
+        });
+    });
   });
 });
 </script>

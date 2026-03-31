@@ -3,50 +3,498 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Print Roadmap</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <title>{{ path_name }} - Learning Roadmap</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.1/css/all.min.css" rel="stylesheet">
   <style>
-    body { background: #fff; color: #000; }
-    .title { font-size: 24px; font-weight: 700; margin: 16px 0; }
-    .subtitle { color: #444; margin-bottom: 16px; }
-    .card { border: 1px solid #ddd; }
-    @media print { .no-print { display: none; } .card { break-inside: avoid; page-break-inside: avoid; } }
+    * {
+      box-sizing: border-box;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    body {
+      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+      color: #1e293b;
+      line-height: 1.6;
+      margin: 0;
+      padding: 2rem;
+      min-height: 100vh;
+    }
+
+    .print-header {
+      text-align: center;
+      margin: -2rem -2rem 3rem -2rem;
+      padding: 3rem 2.5rem;
+      background: linear-gradient(135deg, rgba(79, 70, 229, 0.08), rgba(124, 58, 237, 0.08));
+      border-radius: 28px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(20px);
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .print-header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 6px;
+      background: linear-gradient(90deg, #4f46e5, #7c3aed, #ec4899);
+    }
+
+    .roadmap-logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      font-size: 1.25rem;
+      color: #4f46e5;
+      font-weight: 700;
+    }
+
+    .roadmap-title {
+      font-size: 2.8rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin: 0 0 0.75rem 0;
+      letter-spacing: -0.03em;
+    }
+
+    .roadmap-meta {
+      font-size: 1.3rem;
+      color: #64748b;
+      font-weight: 500;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .meta-badge {
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      color: white;
+      padding: 0.5rem 1.25rem;
+      border-radius: 25px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+    }
+
+    .weeks-container {
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    .week-card {
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 24px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+      break-inside: avoid;
+      page-break-inside: avoid;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .week-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.12);
+    }
+
+    .week-header {
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      color: white;
+      padding: 1.75rem 2rem;
+      position: relative;
+    }
+
+    .week-header::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 6px;
+      background: linear-gradient(180deg, #ec4899, #f59e0b);
+    }
+
+    .week-number {
+      font-size: 1.5rem;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .week-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      opacity: 0.95;
+      margin: 0;
+    }
+
+    .week-content {
+      padding: 2.5rem;
+    }
+
+    .tasks-section, .resources-section {
+      margin-bottom: 2.5rem;
+    }
+
+    .section-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 1.25rem;
+      padding-bottom: 0.75rem;
+      position: relative;
+    }
+
+    .section-title::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 50px;
+      height: 3px;
+      background: linear-gradient(90deg, #10b981, #34d399);
+    }
+
+    .task-item, .resource-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+      background: rgba(255, 255, 255, 0.5);
+      border-radius: 16px;
+      border-left: 4px solid #e2e8f0;
+      transition: all 0.3s ease;
+    }
+
+    .task-item:hover, .resource-item:hover {
+      border-left-color: #4f46e5;
+      background: rgba(79, 70, 229, 0.05);
+      transform: translateX(8px);
+    }
+
+    .task-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #10b981, #34d399);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1rem;
+      flex-shrink: 0;
+      margin-top: 0.25rem;
+    }
+
+    .resource-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #3b82f6, #60a5fa);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      flex-shrink: 0;
+      margin-top: 0.25rem;
+    }
+
+    .no-content {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: #94a3b8;
+    }
+
+    .no-content i {
+      font-size: 4rem;
+      opacity: 0.5;
+      margin-bottom: 1.5rem;
+      display: block;
+    }
+
+    .print-controls {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      z-index: 1000;
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    .print-btn {
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 50px;
+      color: white;
+      font-weight: 600;
+      box-shadow: 0 10px 30px rgba(79, 70, 229, 0.4);
+      transition: all 0.3s ease;
+    }
+
+    .print-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 20px 40px rgba(79, 70, 229, 0.5);
+    }
+
+    .close-btn {
+      background: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: white;
+    }
+
+    .print-footer {
+      text-align: center;
+      padding: 3rem 2rem;
+      color: #94a3b8;
+      font-size: 0.95rem;
+      border-top: 1px solid rgba(0, 0, 0, 0.08);
+      margin-top: 4rem;
+    }
+
+    /* Print Styles */
+    @media print {
+      body {
+        background: white !important;
+        color: black !important;
+        padding: 1in !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      
+      .no-print, .print-controls { display: none !important; }
+      
+      .print-header {
+        margin: -1in -1in 2rem -1in !important;
+        border-radius: 0 !important;
+        background: white !important;
+        box-shadow: none !important;
+        border-bottom: 4px solid #4f46e5 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      
+      .week-card {
+        background: white !important;
+        border: 1px solid #e2e8f0 !important;
+        box-shadow: none !important;
+        margin-bottom: 1.5rem !important;
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+      }
+      
+      .week-header {
+        background: #4f46e5 !important;
+        color: white !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      
+      .task-icon, .resource-icon {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      
+      .print-footer {
+        color: #64748b !important;
+        border-top-color: #e2e8f0 !important;
+      }
+    }
+
+    @media (max-width: 768px) {
+      body { padding: 1rem; }
+      .print-header { margin: -1rem -1rem 2rem -1rem; padding: 2rem 1.5rem; }
+      .roadmap-title { font-size: 2.2rem; }
+      .week-content { padding: 1.5rem; }
+      .task-item, .resource-item { flex-direction: column; gap: 0.75rem; }
+    }
   </style>
-  <script>
-    window.addEventListener('load', function() { setTimeout(function(){ window.print(); }, 300); });
-  </script>
-  </head>
-<body class="container py-4">
-  <div class="no-print mb-3"><a href="javascript:window.print()" class="btn btn-primary btn-sm">Print</a></div>
-  <div class="title">Roadmap</div>
-  <div class="subtitle">{{ path_name }} · Target role: {{ target_role }}</div>
-  {% if roadmap %}
-  {% for week in roadmap %}
-  <div class="card mb-3">
-    <div class="card-header">Week {{ week.week }}</div>
-    <div class="card-body">
-      <h5 class="card-title mb-2">{{ week.topic }}</h5>
-      {% if week.tasks %}
-      <div class="mb-2 fw-semibold">Tasks</div>
-      <ul>
-        {% for t in week.tasks %}
-        <li>{{ t }}</li>
-        {% endfor %}
-      </ul>
-      {% endif %}
-      {% if week.resources %}
-      <div class="mb-2 fw-semibold">Resources</div>
-      <ul>
-        {% for r in week.resources %}
-        <li>{{ r }}</li>
-        {% endfor %}
-      </ul>
-      {% endif %}
+</head>
+<body>
+  <!-- Print Controls -->
+  <div class="print-controls no-print">
+    <button onclick="window.print()" class="print-btn">
+      <i class="fas fa-print me-1"></i>Print Roadmap
+    </button>
+    <button onclick="window.close()" class="print-btn close-btn">
+      <i class="fas fa-times me-1"></i>Close
+    </button>
+  </div>
+
+  <!-- Header -->
+  <div class="print-header">
+    <div class="roadmap-logo">
+      <i class="fas fa-route fs-2"></i>
+      <strong>AI Learning Roadmap</strong>
+    </div>
+    <h1 class="roadmap-title">{{ path_name }}</h1>
+    <div class="roadmap-meta">
+      <span class="meta-badge">
+        <i class="fas fa-user-tie"></i>
+        Target: {{ target_role }}
+      </span>
+      <span class="meta-badge">
+        <i class="fas fa-calendar-week"></i>
+        {{ roadmap|length }} weeks
+      </span>
+      <span class="meta-badge">
+        <i class="fas fa-clock"></i>
+        Generated: {{ 'now'|strftime('%B %d, %Y') }}
+      </span>
     </div>
   </div>
-  {% endfor %}
+
+  <!-- Roadmap Content -->
+  {% if roadmap %}
+  <div class="weeks-container">
+    {% for week in roadmap %}
+    <div class="week-card">
+      <div class="week-header">
+        <div class="week-number">
+          <i class="fas fa-calendar-week"></i>
+          Week {{ week.week }}
+        </div>
+        <h3 class="week-title">{{ week.topic }}</h3>
+      </div>
+      <div class="week-content">
+        {% if week.tasks %}
+        <div class="tasks-section">
+          <h4 class="section-title">
+            <i class="fas fa-tasks me-2"></i>Tasks
+          </h4>
+          {% for t in week.tasks %}
+          <div class="task-item">
+            <div class="task-icon">✓</div>
+            <div class="task-content">
+              {{ t }}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        
+        {% if week.resources %}
+        <div class="resources-section">
+          <h4 class="section-title">
+            <i class="fas fa-book-open me-2"></i>Resources
+          </h4>
+          {% for r in week.resources %}
+          <div class="resource-item">
+            <div class="resource-icon">📖</div>
+            <div class="resource-content">
+              {{ r }}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Completion Summary -->
+  <div class="glass-card text-center p-5 mt-5" style="background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(20px); border-radius: 24px; border: 1px solid rgba(255, 255, 255, 0.3);">
+    <h3 class="mb-4">
+      <i class="fas fa-rocket text-success me-2"></i>
+      Roadmap Complete!
+    </h3>
+    <p class="lead text-muted mb-0">
+      Print this roadmap and keep it as your learning guide. 
+      Track your progress week by week! 🚀
+    </p>
+  </div>
   {% else %}
-  <div>No content.</div>
+  <div class="no-content">
+    <i class="fas fa-road-barriers"></i>
+    <h3>No roadmap content available</h3>
+    <p class="lead">Please generate a roadmap first.</p>
+  </div>
   {% endif %}
+
+  <!-- Footer -->
+  <div class="print-footer">
+    <div class="row align-items-center">
+      <div class="col-md-6">
+        <p class="mb-2 mb-md-0">
+          <i class="fas fa-graduation-cap me-2"></i>
+          AI Learning Platform • Personalized Roadmap
+        </p>
+      </div>
+      <div class="col-md-6 text-md-end">
+        <p class="mb-0 small">
+          Printed: {{ 'now'|strftime('%B %d, %Y %I:%M %p IST') }}
+          <i class="fas fa-print ms-2"></i>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    window.addEventListener('load', function() {
+      // Auto-print after brief delay
+      setTimeout(() => {
+        window.print();
+      }, 600);
+      
+      // Handle print dialog events
+      const mediaQueryList = window.matchMedia('print');
+      mediaQueryList.addListener((mql) => {
+        if (!mql.matches) {
+          // Print dialog closed/canceled
+          setTimeout(() => {
+            if (confirm('Close this roadmap?')) {
+              window.close();
+            }
+          }, 300);
+        }
+      });
+    });
+
+    // Add smooth hover animations
+    document.querySelectorAll('.week-card').forEach((card, index) => {
+      card.style.opacity = '0';
+      card.style.transform = 'translateY(30px)';
+      
+      // Staggered entrance animation
+      setTimeout(() => {
+        card.style.transition = 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
+        card.style.opacity = '1';
+        card.style.transform = 'translateY(0)';
+      }, index * 100);
+    });
+
+    // Task/resource hover effects
+    document.querySelectorAll('.task-item, .resource-item').forEach(item => {
+      item.addEventListener('mouseenter', () => {
+        item.style.transform = 'translateX(8px)';
+      });
+      item.addEventListener('mouseleave', () => {
+        item.style.transform = 'translateX(0)';
+      });
+    });
+  </script>
 </body>
 </html>

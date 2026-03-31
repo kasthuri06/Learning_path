@@ -6,60 +6,376 @@
   <title>{% block title %}AI Learning Platform{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.1/css/all.min.css" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    :root {
+      --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      --glass-bg: rgba(255, 255, 255, 0.1);
+      --glass-border: rgba(255, 255, 255, 0.2);
+      --shadow-lg: 0 25px 45px rgba(0,0,0,0.1);
+      --shadow-sm: 0 10px 30px rgba(0,0,0,0.1);
+    }
+
+    [data-theme="dark"] {
+      --glass-bg: rgba(26, 26, 46, 0.8);
+      --glass-border: rgba(255, 255, 255, 0.1);
+      --bg-primary: #0a0a23;
+      --text-primary: #ffffff;
+      --text-secondary: #b3b3ff;
+    }
+
+    [data-theme="light"] {
+      --glass-bg: rgba(255, 255, 255, 0.9);
+      --glass-border: rgba(0, 0, 0, 0.1);
+      --bg-primary: #f8fafc;
+      --text-primary: #1e293b;
+      --text-secondary: #64748b;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, var(--bg-primary), #e2e8f0);
+      color: var(--text-primary);
+      margin: 0;
+      overflow-x: hidden;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .app-navbar {
+      background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--glass-border);
+      box-shadow: var(--shadow-sm);
+      padding: 1rem 0;
+      position: sticky;
+      top: 0;
+      z-index: 1030;
+      transition: all 0.3s ease;
+    }
+
+    [data-theme="dark"] .app-navbar {
+      background: rgba(15, 15, 35, 0.95);
+      border-bottom-color: var(--glass-border);
+    }
+
+    .app-brand {
+      font-size: 1.75rem;
+      font-weight: 800;
+      background: var(--primary-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-decoration: none;
+      transition: transform 0.3s ease;
+    }
+
+    .app-brand:hover { transform: scale(1.05); }
+
+    .app-nav-link {
+      color: var(--text-primary) !important;
+      font-weight: 500;
+      padding: 0.75rem 1.5rem !important;
+      border-radius: 50px;
+      margin: 0 0.25rem;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .app-nav-link::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: var(--primary-gradient);
+      opacity: 0.2;
+      transition: left 0.4s;
+      z-index: -1;
+    }
+
+    .app-nav-link:hover::before { left: 0; }
+    .app-nav-link:hover { transform: translateY(-2px); color: white !important; box-shadow: var(--shadow-sm); }
+
+    .app-theme-toggle {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: none;
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      border: 2px solid var(--glass-border);
+      color: var(--text-secondary);
+      font-size: 1.2rem;
+      cursor: pointer;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .app-theme-toggle:hover {
+      transform: scale(1.1) rotate(180deg);
+      background: var(--primary-gradient);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .app-main {
+      min-height: calc(100vh - 120px);
+      padding: 2rem 1rem;
+      animation: fadeInUp 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .app-chatbot-toggle {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      background: var(--success-gradient);
+      border: none;
+      color: white;
+      font-size: 1.5rem;
+      box-shadow: var(--shadow-lg);
+      cursor: pointer;
+      z-index: 1050;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(79, 172, 254, 0.7); }
+      70% { box-shadow: 0 0 0 20px rgba(79, 172, 254, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(79, 172, 254, 0); }
+    }
+
+    .app-chatbot-toggle:hover { transform: scale(1.1) translateY(-5px); }
+
+    .app-chatbot-popup {
+      position: fixed;
+      bottom: 5rem;
+      right: 2rem;
+      width: 420px;
+      max-width: 90vw;
+      height: 500px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(30px);
+      border-radius: 24px;
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+      z-index: 1060;
+      animation: slideInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    @keyframes slideInUp {
+      from { opacity: 0; transform: translateY(20px) scale(0.95); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .app-chatbot-header {
+      padding: 1.25rem 1.5rem;
+      background: var(--primary-gradient);
+      color: white;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .app-chatbot-header span {
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+
+    .app-chatbot-messages {
+      height: 320px;
+      overflow-y: auto;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .app-chatbot-input {
+      padding: 1.5rem;
+      border-top: 1px solid var(--glass-border);
+      display: flex;
+      gap: 0.75rem;
+      background: var(--glass-bg);
+    }
+
+    .app-chatbot-input .form-control {
+      border-radius: 25px;
+      border: 2px solid var(--glass-border);
+      background: rgba(255,255,255,0.2);
+      backdrop-filter: blur(10px);
+      color: var(--text-primary);
+      padding: 0.75rem 1.25rem;
+      transition: all 0.3s ease;
+    }
+
+    .app-chatbot-input .form-control:focus {
+      border-color: #667eea;
+      box-shadow: 0 0 0 0.25rem rgba(102, 126, 234, 0.25);
+      background: rgba(255,255,255,0.3);
+    }
+
+    .app-btn-primary {
+      background: var(--success-gradient);
+      border: none;
+      border-radius: 25px;
+      padding: 0.75rem 1.5rem;
+      color: white;
+      font-weight: 600;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .app-btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .app-navbar .navbar-nav { gap: 0.5rem; }
+      .app-nav-link { padding: 0.5rem 1rem !important; font-size: 0.95rem; }
+      .app-main { padding: 1rem 0.5rem; }
+      .app-chatbot-popup { width: 95vw; right: 2.5%; height: 70vh; }
+    }
+
+    /* Scrollbar */
+    .app-chatbot-messages::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .app-chatbot-messages::-webkit-scrollbar-track {
+      background: var(--glass-bg);
+      border-radius: 10px;
+    }
+
+    .app-chatbot-messages::-webkit-scrollbar-thumb {
+      background: var(--primary-gradient);
+      border-radius: 10px;
+    }
+
+    /* Loading animation for content */
+    .fade-in { animation: fadeInUp 0.6s ease forwards; }
+  </style>
 </head>
 <body class="app-body" data-theme="dark">
 <script>
-(function(){ var t = localStorage.getItem('app-theme'); if (t === 'light' || t === 'dark') document.body.setAttribute('data-theme', t); })();
+(function(){ 
+  var t = localStorage.getItem('app-theme') || 'dark'; 
+  document.body.setAttribute('data-theme', t); 
+})();
 </script>
-  {% if session.get('user_id') %}
-  <nav class="navbar navbar-expand-lg app-navbar">
-    <div class="container">
-      <a class="navbar-brand app-brand" href="{{ url_for('dashboard') }}">AI Learning Platform</a>
-      <button class="navbar-toggler app-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav ms-auto gap-2 align-items-center">
-          <li class="nav-item"><a class="nav-link app-nav-link" href="{{ url_for('dashboard') }}">Dashboard</a></li>
-          <li class="nav-item"><a class="nav-link app-nav-link" href="{{ url_for('generate') }}">Generate Path</a></li>
-          <li class="nav-item"><a class="nav-link app-nav-link" href="{{ url_for('roadmap') }}">My Roadmap</a></li>
-          <li class="nav-item"><a class="nav-link app-nav-link" href="{{ url_for('reviews_page') }}">Reviews</a></li>
-          <li class="nav-item">
-            <button type="button" class="btn app-theme-toggle" id="theme-toggle" aria-label="Toggle dark/light theme" title="Toggle theme">🌓</button>
-          </li>
-          <li class="nav-item"><a class="nav-link app-nav-link app-nav-link--logout" href="{{ url_for('logout') }}">Logout</a></li>
-        </ul>
-      </div>
-    </div>
-  </nav>
-  {% endif %}
-  <main class="app-main container py-4">
-    {% block content %}{% endblock %}
-  </main>
-  {% if session.get('user_id') %}
-  <div class="app-chatbot-toggle" id="chatbot-toggle" aria-label="Open chatbot">💬</div>
-  <div class="app-chatbot-popup" id="chatbot-popup" style="display:none;">
-    <div class="app-chatbot-header">
-      <span>AI Assistant</span>
-      <div class="btn-group btn-group-sm">
-        <button type="button" class="btn btn-outline-light active" data-mode="general">General</button>
-        <button type="button" class="btn btn-outline-light" data-mode="path_creation">Path Creation</button>
-        <button type="button" class="btn btn-outline-light" data-mode="research">Research</button>
-      </div>
-      <button type="button" class="btn btn-close btn-close-white btn-sm" id="chatbot-close" aria-label="Close"></button>
-    </div>
-    <div class="app-chatbot-messages" id="chatbot-messages"></div>
-    <div class="app-chatbot-input">
-      <input type="text" class="form-control" id="chatbot-input" placeholder="Type a message..." autocomplete="off">
-      <button type="button" class="btn app-btn-primary" id="chatbot-send">Send</button>
+
+{% if session.get('user_id') %}
+<nav class="navbar navbar-expand-lg app-navbar">
+  <div class="container">
+    <a class="navbar-brand app-brand" href="{{ url_for('dashboard') }}">
+      <i class="fas fa-brain me-2"></i>AI Learning Platform
+    </a>
+    <button class="navbar-toggler app-toggler border-0 p-2 rounded-3" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <i class="fas fa-bars fs-4"></i>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav ms-auto gap-2 align-items-center">
+        <li class="nav-item">
+          <a class="nav-link app-nav-link" href="{{ url_for('dashboard') }}">
+            <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link app-nav-link" href="{{ url_for('generate') }}">
+            <i class="fas fa-magic me-1"></i>Generate Path
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link app-nav-link" href="{{ url_for('roadmap') }}">
+            <i class="fas fa-route me-1"></i>My Roadmap
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link app-nav-link" 
+href="{{ url_for('reviews_page') }}">
+            <i class="fas fa-brain me-1"></i>Reviews
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link app-nav-link" href="{{ url_for('compare') }}">
+            <i class="fas fa-balance-scale me-1"></i>Compare
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link app-nav-link" href="/profile">
+            <i class="fas fa-user-circle me-1"></i>Profile
+          </a>
+        </li>
+        <li class="nav-item">
+          <button type="button" class="btn app-theme-toggle" id="theme-toggle" aria-label="Toggle dark/light theme" title="Toggle theme">
+            <i class="fas fa-moon"></i>
+          </button>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link app-nav-link app-nav-link--logout" href="{{ url_for('logout') }}">
+            <i class="fas fa-sign-out-alt me-1"></i>Logout
+          </a>
+        </li>
+      </ul>
     </div>
   </div>
-  {% endif %}
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="{{ url_for('static', filename='app.js') }}"></script>
-  {% block scripts %}{% endblock %}
+</nav>
+{% endif %}
+
+<main class="app-main">
+  {% block content %}{% endblock %}
+</main>
+
+{% if session.get('user_id') %}
+<button class="app-chatbot-toggle" id="chatbot-toggle" aria-label="Open AI Assistant">
+  <i class="fas fa-robot"></i>
+</button>
+<div class="app-chatbot-popup" id="chatbot-popup" style="display:none;">
+  <div class="app-chatbot-header">
+    <i class="fas fa-robot fs-5"></i>
+    <span>AI Assistant</span>
+    <div class="btn-group btn-group-sm ms-auto me-2">
+      <button type="button" class="btn btn-outline-light btn-sm active" data-mode="general">General</button>
+      <button type="button" class="btn btn-outline-light btn-sm" data-mode="path_creation">Path</button>
+      <button type="button" class="btn btn-outline-light btn-sm" data-mode="research">Research</button>
+    </div>
+    <button type="button" class="btn-close btn-close-white btn-sm" id="chatbot-close" aria-label="Close"></button>
+  </div>
+  <div class="app-chatbot-messages" id="chatbot-messages"></div>
+  <div class="app-chatbot-input">
+    <input type="text" class="form-control" id="chatbot-input" placeholder="Ask me anything..." autocomplete="off">
+    <button type="button" class="btn app-btn-primary" id="chatbot-send">
+      <i class="fas fa-paper-plane"></i>
+    </button>
+  </div>
+</div>
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+{% block scripts %}{% endblock %}
 </body>
 </html>

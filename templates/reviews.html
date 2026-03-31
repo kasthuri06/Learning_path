@@ -1,61 +1,407 @@
 {% extends "base.html" %}
-{% block title %}Reviews{% endblock %}
+{% block title %}Spaced Repetition Reviews{% endblock %}
 {% block content %}
-<h1 class="app-title mb-3">Reviews</h1>
-<div class="row g-3">
-  <div class="col-lg-6">
-    <div class="app-chart-card card h-100">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <span>Due now</span>
-        <a href="{{ url_for('export_reviews_ics') }}" class="btn btn-sm app-btn-ghost">Export .ics</a>
+<!-- Hero Header -->
+<div class="reviews-hero mb-5 fade-in">
+  <div class="container">
+    <div class="row align-items-center">
+      <div class="col-lg-8">
+        <h1 class="display-5 fw-bold mb-3" style="background: linear-gradient(135deg, #059669, #10b981); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
+          <i class="fas fa-brain-circuit me-3"></i>Spaced Repetition
+        </h1>
+        <p class="lead mb-0 text-lg-muted">Review smart. Remember forever. AI-optimized spaced repetition schedule.</p>
       </div>
-      <div class="card-body">
-        {% if due_reviews %}
-        <ul class="list-unstyled mb-0">
-          {% for r in due_reviews %}
-          <li class="py-2 d-flex align-items-center justify-content-between" data-review-id="{{ r.id }}">
-            <div>
-              <div class="fw-semibold">{{ r.topic }}</div>
-              <div class="text-muted small">{{ r.path_name }} · Due {{ r.due_date }}</div>
-            </div>
-            <button type="button" class="btn btn-sm app-btn-success review-done-btn" data-review-id="{{ r.id }}">Done</button>
-          </li>
-          {% endfor %}
-        </ul>
-        {% else %}
-        <div class="text-muted">Nothing due today.</div>
-        {% endif %}
-      </div>
-    </div>
-  </div>
-  <div class="col-lg-6">
-    <div class="app-chart-card card h-100">
-      <div class="card-header">Upcoming</div>
-      <div class="card-body">
-        {% if upcoming_reviews %}
-        <ul class="list-unstyled mb-0">
-          {% for r in upcoming_reviews %}
-          <li class="py-2">
-            <div class="fw-semibold">{{ r.topic }}</div>
-            <div class="text-muted small">{{ r.path_name }} · {{ r.due_date }}</div>
-          </li>
-          {% endfor %}
-        </ul>
-        {% else %}
-        <div class="text-muted">No upcoming reviews.</div>
-        {% endif %}
+      <div class="col-lg-4 text-lg-end">
+        <div class="export-actions glass-card p-3 d-inline-flex align-items-center gap-2">
+          <a href="{{ url_for('export_reviews_ics') }}" class="btn btn-outline-success btn-sm rounded-pill px-4">
+            <i class="fas fa-calendar-plus me-2"></i>iCal Export
+          </a>
+          <button onclick="printReviews()" class="btn btn-success btn-sm rounded-pill px-4">
+            <i class="fas fa-print me-2"></i>Print
+          </button>
+        </div>
       </div>
     </div>
   </div>
 </div>
+
+<!-- Stats Overview -->
+<div class="row g-4 mb-5">
+  <div class="col-md-3">
+    <div class="stat-card glass-card text-center p-4 lift-hover">
+      <div class="stat-icon mb-3">
+        <i class="fas fa-clock fs-2 text-warning"></i>
+      </div>
+      <div class="stat-number h3 fw-bold mb-1">{{ due_reviews|length }}</div>
+      <div class="stat-label text-muted">Due Now</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card glass-card text-center p-4 lift-hover">
+      <div class="stat-icon mb-3">
+        <i class="fas fa-calendar-days fs-2 text-info"></i>
+      </div>
+      <div class="stat-number h3 fw-bold mb-1">{{ upcoming_reviews|length }}</div>
+      <div class="stat-label text-muted">Upcoming</div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="glass-card p-4">
+      <h6 class="mb-3 fw-bold">
+        <i class="fas fa-lightbulb text-primary me-2"></i>Why Reviews Work
+      </h6>
+      <p class="small text-muted mb-0">
+        Spaced repetition leverages the <strong>Forgetting Curve</strong> - reviewing at optimal intervals 
+        increases retention by <strong>200-300%</strong>. Your AI schedule is scientifically optimized!
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- Due Now Section -->
+<div class="due-now-section mb-5">
+  <div class="glass-card">
+    <div class="card-header d-flex justify-content-between align-items-center p-4">
+      <div>
+        <h5 class="mb-1">
+          <i class="fas fa-fire text-danger me-2"></i>Due Right Now 
+          <span class="badge bg-danger-subtle text-danger rounded-pill ms-2">{{ due_reviews|length }}</span>
+        </h5>
+        <small class="text-muted">Complete these to maintain your streak</small>
+      </div>
+      <div class="btn-group" role="group">
+        <button class="btn btn-sm btn-outline-danger mark-all-done" id="mark-all-done">
+          <i class="fas fa-check-double"></i> Mark All Done
+        </button>
+      </div>
+    </div>
+    <div class="card-body p-0">
+      {% if due_reviews %}
+      <div class="reviews-list">
+        {% for r in due_reviews %}
+        <div class="review-item due-item glass-card-hover p-4 border-bottom" data-review-id="{{ r.id }}" style="border-bottom: 1px solid var(--glass-border);">
+          <div class="d-flex align-items-start justify-content-between">
+            <div class="flex-grow-1 me-3">
+              <div class="review-title fw-bold mb-2 text-truncate" style="font-size: 1.1rem;">{{ r.topic }}</div>
+              <div class="review-meta d-flex align-items-center gap-3 small text-muted">
+                <span class="path-badge rounded-pill px-3 py-1">
+                  <i class="fas fa-route me-1"></i>{{ r.path_name }}
+                </span>
+                <span>
+                  <i class="fas fa-calendar-day me-1"></i>{{ r.due_date }}
+                </span>
+              </div>
+            </div>
+            <button type="button" class="btn btn-success review-done-btn rounded-pill px-4 py-2 shadow-sm position-relative overflow-hidden" data-review-id="{{ r.id }}">
+              <span class="btn-text">Mark Done</span>
+              <div class="btn-ripple"></div>
+            </button>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty-state text-center py-8 px-4">
+        <div class="empty-icon mb-4">
+          <i class="fas fa-check-circle fs-1 text-success"></i>
+        </div>
+        <h4 class="mb-3 fw-bold text-success">🎉 All Caught Up!</h4>
+        <p class="lead text-muted mb-4">No reviews due right now. You're maintaining perfect retention!</p>
+        <div class="streak-badge glass-card d-inline-flex align-items-center gap-2 px-4 py-2">
+          <i class="fas fa-fire text-warning"></i>
+          <span class="fw-bold">Streak Active</span>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Upcoming Reviews -->
+<div class="upcoming-section">
+  <div class="glass-card">
+    <div class="card-header p-4">
+      <h5 class="mb-0">
+        <i class="fas fa-calendar-days text-info me-2"></i>Upcoming Reviews 
+        <span class="badge bg-info-subtle text-info rounded-pill">{{ upcoming_reviews|length }}</span>
+      </h5>
+      <small class="text-muted">Next 7 days - plan your schedule</small>
+    </div>
+    <div class="card-body p-0">
+      {% if upcoming_reviews %}
+      <div class="timeline-container">
+        {% for r in upcoming_reviews %}
+        <div class="timeline-item glass-card-hover p-4" style="border-bottom: 1px solid var(--glass-border);">
+          <div class="d-flex align-items-start gap-4">
+            <div class="timeline-date flex-shrink-0 text-center">
+              <div class="date-number fs-4 fw-bold text-primary mb-1">{{ r.due_date.split(' ')[1] if r.due_date.split(' ') | length > 1 else '' }}</div>
+              <div class="date-label small text-muted">{{ r.due_date.split(' ')[0] if r.due_date.split(' ') | length > 1 else r.due_date }}</div>
+            </div>
+            <div class="flex-grow-1">
+              <h6 class="review-title fw-semibold mb-2">{{ r.topic }}</h6>
+              <div class="d-flex align-items-center gap-3 small text-muted mb-2">
+                <span class="path-tag rounded-pill bg-light px-3 py-1">
+                  {{ r.path_name }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty-state text-center py-8 px-4">
+        <div class="empty-icon mb-4">
+          <i class="fas fa-calendar-xmark fs-1 text-muted"></i>
+        </div>
+        <h5 class="mb-3 text-muted">No upcoming reviews</h5>
+        <p class="text-muted mb-0">Your spaced repetition schedule is perfectly optimized.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="quick-actions mt-5 text-center">
+  <div class="glass-card p-4 d-inline-flex gap-3 flex-wrap justify-content-center">
+    <a href="{{ url_for('dashboard') }}" class="btn btn-outline-primary rounded-pill px-4">
+      <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+    </a>
+    <a href="{{ url_for('roadmap') }}" class="btn btn-primary rounded-pill px-4">
+      <i class="fas fa-book-open me-2"></i>Open Roadmaps
+    </a>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+  .reviews-hero {
+    background: linear-gradient(135deg, rgba(5, 150, 105, 0.08), rgba(16, 185, 129, 0.08));
+    border-radius: 24px;
+    padding: 3rem 2rem;
+    margin-bottom: 3rem;
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+  }
+
+  .export-actions {
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+  }
+
+  .stat-card .stat-icon i {
+    background: linear-gradient(135deg, #059669, #10b981);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .glass-card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.12);
+  }
+
+  .due-item {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .due-item:hover {
+    border-left: 4px solid #ef4444;
+    background: rgba(239, 68, 68, 0.05);
+  }
+
+  .review-done-btn {
+    background: linear-gradient(135deg, #10b981, #34d399);
+    border: none;
+    min-width: 100px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+  }
+
+  .review-done-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(16, 185, 129, 0.4);
+  }
+
+  .btn-ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.5);
+    transform: scale(0);
+    animation: ripple 0.6s linear;
+    pointer-events: none;
+  }
+
+  @keyframes ripple {
+    to {
+      transform: scale(4);
+      opacity: 0;
+    }
+  }
+
+  .path-badge, .path-tag {
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    color: white;
+    font-size: 0.8rem;
+    font-weight: 500;
+  }
+
+  .timeline-container {
+    max-height: 500px;
+    overflow-y: auto;
+  }
+
+  .timeline-item {
+    transition: all 0.3s ease;
+  }
+
+  .timeline-date {
+    min-width: 80px;
+  }
+
+  .date-number {
+    color: #3b82f6;
+    line-height: 1;
+  }
+
+  .mark-all-done {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #dc2626;
+    font-weight: 600;
+  }
+
+  .mark-all-done:hover {
+    background: rgba(239, 68, 68, 0.2);
+  }
+
+  @media (max-width: 768px) {
+    .reviews-hero { margin: 0 -1rem 2rem -1rem; border-radius: 0; }
+    .timeline-date { order: 2; margin-top: 0.5rem; }
+  }
+</style>
+
 <script>
-document.querySelectorAll('.review-done-btn').forEach(function(btn) {
-  btn.addEventListener('click', function() {
-    var id = parseInt(this.getAttribute('data-review-id'));
-    fetch('/api/review_complete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ review_id: id }) })
-      .then(function(r) { return r.json(); })
-      .then(function(d) { if (d.ok) { var li = document.querySelector('li[data-review-id="'+id+'"]'); if (li) li.remove(); } });
+document.addEventListener('DOMContentLoaded', function() {
+  // Individual review complete
+  document.querySelectorAll('.review-done-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const reviewId = parseInt(this.dataset.reviewId);
+      const item = this.closest('.review-item');
+      
+      // Ripple effect
+      const ripple = document.createElement('span');
+      ripple.className = 'btn-ripple';
+      const rect = this.getBoundingClientRect();
+      const size = Math.max(rect.width, rect.height);
+      const x = event.clientX - rect.left - size / 2;
+      const y = event.clientY - rect.top - size / 2;
+      ripple.style.width = ripple.style.height = size + 'px';
+      ripple.style.left = x + 'px';
+      ripple.style.top = y + 'px';
+      this.appendChild(ripple);
+      
+      fetch('/api/review_complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ review_id: reviewId })
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.ok) {
+          item.style.animation = 'fadeOut 0.5s ease forwards';
+          setTimeout(() => {
+            item.remove();
+            checkEmptyState();
+          }, 500);
+          
+          // Success feedback
+          showToast('Review marked complete! ✅');
+        }
+      })
+      .catch(() => showToast('Error marking complete', 'error'));
+    });
   });
+
+  // Mark all done
+  document.getElementById('mark-all-done')?.addEventListener('click', function() {
+    const dueItems = document.querySelectorAll('.due-item');
+    if (dueItems.length === 0 || !confirm(`Mark all ${dueItems.length} reviews as done?`)) return;
+    
+    const reviewIds = Array.from(dueItems).map(item => parseInt(item.dataset.reviewId));
+    
+    fetch('/api/reviews_bulk_complete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ review_ids: reviewIds })
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.ok) {
+        dueItems.forEach(item => {
+          item.style.animation = 'fadeOut 0.5s ease forwards';
+        });
+        setTimeout(() => {
+          document.querySelectorAll('.due-item').forEach(item => item.remove());
+          checkEmptyState();
+          showToast(`${data.completed} reviews marked complete! 🎉`);
+        }, 500);
+      }
+    });
+  });
+
+  function checkEmptyState() {
+    const dueList = document.querySelector('.reviews-list');
+    if (dueList && dueList.children.length === 0) {
+      dueList.innerHTML = `
+        <div class="empty-state text-center py-8 px-4">
+          <div class="empty-icon mb-4">
+            <i class="fas fa-check-circle fs-1 text-success"></i>
+          </div>
+          <h4 class="mb-3 fw-bold text-success">🎉 Perfect!</h4>
+          <p class="lead text-muted mb-0">No reviews due right now. Excellent retention practice!</p>
+        </div>
+      `;
+    }
+  }
+
+  function showToast(message, type = 'success') {
+    // Simple toast notification
+    const toast = document.createElement('div');
+    toast.className = `toast-notification position-fixed top-0 end-0 m-4 p-3 rounded-3 shadow-lg ${type}`;
+    toast.innerHTML = message;
+    toast.style.cssText = `
+      z-index: 9999;
+      background: ${type === 'success' ? '#10b981' : '#ef4444'};
+      color: white;
+      max-width: 350px;
+      animation: slideInRight 0.4s ease, fadeOut 0.4s ease 2.6s forwards;
+    `;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+  }
+
+  window.printReviews = function() {
+    window.open('/reviews/print', '_blank');
+  };
 });
+
+// CSS Animations
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes fadeOut {
+    from { opacity: 1; transform: translateX(0); }
+    to { opacity: 0; transform: translateX(20px); }
+  }
+  
+  @keyframes slideInRight {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+`;
+document.head.appendChild(style);
 </script>
 {% endblock %}

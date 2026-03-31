@@ -1,87 +1,355 @@
 {% extends "base.html" %}
-{% block title %}Compare Paths{% endblock %}
+{% block title %}Compare Learning Paths{% endblock %}
 {% block content %}
-<h1 class="app-title mb-3">Compare Paths</h1>
-<div class="app-form-card mb-4">
-  <form class="row g-3" method="get" action="{{ url_for('compare') }}">
-    <div class="col-md-5">
-      <label class="app-label">Path A</label>
-      <select class="form-select app-input" name="a" required>
-        <option value="">Select</option>
-        {% for p in paths %}
-        <option value="{{ p.id }}" {% if a == p.id %}selected{% endif %}>{{ p.name }} ({{ p.progress_pct }}%)</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div class="col-md-5">
-      <label class="app-label">Path B</label>
-      <select class="form-select app-input" name="b" required>
-        <option value="">Select</option>
-        {% for p in paths %}
-        <option value="{{ p.id }}" {% if b == p.id %}selected{% endif %}>{{ p.name }} ({{ p.progress_pct }}%)</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div class="col-md-2 d-flex align-items-end">
-      <button class="btn app-btn-primary w-100" type="submit">Compare</button>
-    </div>
-  </form>
-  <div class="mt-2"><a class="btn btn-sm app-btn-ghost" href="{{ url_for('dashboard') }}">Back to Dashboard</a></div>
+<div class="app-content">
+  <!-- Hero Header -->
+  <div class="text-center mb-5 fade-in">
+    <h1 class="app-title display-5 fw-bold mb-3" style="background: var(--primary-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+      <i class="fas fa-balance-scale me-2"></i>Smart Path Comparison
+    </h1>
+    <p class="lead text-muted px-4">Discover the best learning route by comparing your paths side-by-side</p>
   </div>
-{% if result %}
-<div class="row g-3">
-  <div class="col-lg-4">
-    <div class="card h-100">
-      <div class="card-header">Only in {{ result.a.name }}</div>
-      <div class="card-body">
-        {% if result.only_a %}
-        <ul class="mb-0">
-          {% for t in result.only_a %}
-          <li>{{ t }}</li>
+
+  <!-- Selection Form -->
+  <div class="app-form-card glass-card mb-5 p-4">
+    <div class="row g-4 align-items-end">
+      <div class="col-lg-5">
+        <label class="form-label fw-bold fs-5 mb-3 d-block">
+          <i class="fas fa-route text-primary me-2"></i>Path A
+        </label>
+        <select class="form-select app-input h-100 shadow-lg" name="a" required>
+          <option value="">🎯 Choose your first learning path</option>
+          {% for p in paths %}
+          <option value="{{ p.id }}" {% if a == p.id %}selected{% endif %}>
+            {{ p.name }} 
+            <span class="badge bg-gradient ms-2 badge-gradient-a">
+              {{ p.progress_pct }}% 
+              <i class="fas fa-chart-line ms-1"></i>
+            </span>
+          </option>
           {% endfor %}
-        </ul>
-        {% else %}
-        <div class="text-muted">None</div>
-        {% endif %}
+        </select>
+      </div>
+      <div class="col-lg-1 text-center py-3">
+        <div class="vs-divider">
+          <i class="fas fa-vs display-6 text-primary opacity-75"></i>
+        </div>
+      </div>
+      <div class="col-lg-5">
+        <label class="form-label fw-bold fs-5 mb-3 d-block">
+          <i class="fas fa-route text-success me-2"></i>Path B
+        </label>
+        <select class="form-select app-input h-100 shadow-lg" name="b" required>
+          <option value="">🎯 Choose your second learning path</option>
+          {% for p in paths %}
+          <option value="{{ p.id }}" {% if b == p.id %}selected{% endif %}>
+            {{ p.name }}
+            <span class="badge bg-gradient ms-2 badge-gradient-b">
+              {{ p.progress_pct }}% 
+              <i class="fas fa-chart-line ms-1"></i>
+            </span>
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-lg-1">
+        <button class="btn app-btn-primary w-100 h-100 shadow-lg" type="submit" style="border-radius: 20px;">
+          <i class="fas fa-magic me-2"></i>
+          <span class="fw-bold">Compare Paths</span>
+        </button>
+      </div>
+    </div>
+    <div class="text-center mt-4">
+      <a class="btn btn-outline-primary btn-lg px-4 rounded-pill" href="{{ url_for('dashboard') }}">
+        <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+      </a>
+    </div>
+  </div>
+
+  {% if result %}
+  <!-- Results Section -->
+  <div class="results-comparison mt-5">
+    <!-- Stats Header -->
+    <div class="row mb-5 g-4">
+      <div class="col-md-6">
+        <div class="glass-card text-center p-4 h-100">
+          <div class="app-stat-badge mb-3" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+            <i class="fas fa-route"></i> {{ result.a.name }}
+          </div>
+          <div class="display-4 fw-bold text-primary mb-2">{{ result.a.completed }}<span class="fs-3">/{{ result.a.total }}</span></div>
+          <div class="progress mb-2" style="height: 12px;">
+            <div class="progress-bar bg-gradient" role="progressbar" data-width="{{ result.a.progress_pct }}" style="background: linear-gradient(90deg, #4facfe, #00f2fe);" aria-valuenow="{{ result.a.progress_pct }}" aria-valuemin="0" aria-valuemax="100">
+              {{ result.a.progress_pct }}%
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="glass-card text-center p-4 h-100">
+          <div class="app-stat-badge mb-3" style="background: linear-gradient(135deg, #10b981, #34d399);">
+            <i class="fas fa-route"></i> {{ result.b.name }}
+          </div>
+          <div class="display-4 fw-bold text-success mb-2">{{ result.b.completed }}<span class="fs-3">/{{ result.b.total }}</span></div>
+          <div class="progress mb-2" style="height: 12px;">
+            <div class="progress-bar bg-gradient" role="progressbar" data-width="{{ result.b.progress_pct }}" style="background: linear-gradient(90deg, #10b981, #34d399);" aria-valuenow="{{ result.b.progress_pct }}" aria-valuemin="0" aria-valuemax="100">
+              {{ result.b.progress_pct }}%
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Comparison Cards -->
+    <div class="row g-4 mb-5">
+      <div class="col-lg-4">
+        <div class="comparison-card unique-a glass-card h-100">
+          <div class="card-header d-flex align-items-center">
+            <div class="comparison-icon me-3">
+              <i class="fas fa-crown text-warning"></i>
+            </div>
+            <div>
+              <h5 class="mb-0 fw-bold">Only in {{ result.a.name }}</h5>
+              <small class="text-muted">Exclusive topics & advantages</small>
+            </div>
+          </div>
+          <div class="card-body">
+            {% if result.only_a %}
+            <div class="topics-list">
+              {% for t in result.only_a %}
+              <div class="topic-item mb-2 p-3 rounded-3 bg-white bg-opacity-10">
+                <i class="fas fa-check-circle text-success me-2"></i>
+                {{ t }}
+              </div>
+              {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state text-center py-5">
+              <i class="fas fa-check-circle text-success fs-1 opacity-50 mb-3"></i>
+              <p class="text-muted mb-0">No exclusive topics</p>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="comparison-card common glass-card h-100">
+          <div class="card-header d-flex align-items-center">
+            <div class="comparison-icon me-3">
+              <i class="fas fa-users text-primary"></i>
+            </div>
+            <div>
+              <h5 class="mb-0 fw-bold">Common Topics</h5>
+              <small class="text-muted">Shared foundation skills</small>
+            </div>
+          </div>
+          <div class="card-body">
+            {% if result.common %}
+            <div class="topics-list">
+              {% for t in result.common %}
+              <div class="topic-item mb-2 p-3 rounded-3 bg-primary bg-opacity-10">
+                <i class="fas fa-layer-group text-primary me-2"></i>
+                {{ t }}
+              </div>
+              {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state text-center py-5">
+              <i class="fas fa-layer-group text-primary fs-1 opacity-50 mb-3"></i>
+              <p class="text-muted mb-0">No common topics</p>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="comparison-card unique-b glass-card h-100">
+          <div class="card-header d-flex align-items-center">
+            <div class="comparison-icon me-3">
+              <i class="fas fa-crown text-success"></i>
+            </div>
+            <div>
+              <h5 class="mb-0 fw-bold">Only in {{ result.b.name }}</h5>
+              <small class="text-muted">Exclusive topics & advantages</small>
+            </div>
+          </div>
+          <div class="card-body">
+            {% if result.only_b %}
+            <div class="topics-list">
+              {% for t in result.only_b %}
+              <div class="topic-item mb-2 p-3 rounded-3 bg-white bg-opacity-10">
+                <i class="fas fa-check-circle text-success me-2"></i>
+                {{ t }}
+              </div>
+              {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state text-center py-5">
+              <i class="fas fa-check-circle text-success fs-1 opacity-50 mb-3"></i>
+              <p class="text-muted mb-0">No exclusive topics</p>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="text-center">
+      <div class="btn-group gap-3" role="group">
+        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-primary btn-lg px-5 rounded-pill">
+          <i class="fas fa-home me-2"></i>Dashboard
+        </a>
+        <button class="btn btn-primary btn-lg px-5 rounded-pill" onclick="printComparison()">
+          <i class="fas fa-print me-2"></i>Print Report
+        </button>
+        <a href="{{ url_for('generate') }}" class="btn btn-success btn-lg px-5 rounded-pill">
+          <i class="fas fa-plus me-2"></i>New Path
+        </a>
       </div>
     </div>
   </div>
-  <div class="col-lg-4">
-    <div class="card h-100">
-      <div class="card-header">Only in {{ result.b.name }}</div>
-      <div class="card-body">
-        {% if result.only_b %}
-        <ul class="mb-0">
-          {% for t in result.only_b %}
-          <li>{{ t }}</li>
-          {% endfor %}
-        </ul>
-        {% else %}
-        <div class="text-muted">None</div>
-        {% endif %}
-      </div>
-    </div>
-  </div>
-  <div class="col-lg-4">
-    <div class="card h-100">
-      <div class="card-header">Common topics</div>
-      <div class="card-body">
-        {% if result.common %}
-        <ul class="mb-0">
-          {% for t in result.common %}
-          <li>{{ t }}</li>
-          {% endfor %}
-        </ul>
-        {% else %}
-        <div class="text-muted">None</div>
-        {% endif %}
-      </div>
-    </div>
-  </div>
+  {% endif %}
 </div>
-<div class="mt-4 d-flex gap-3">
-  <div class="app-stat-card"><div class="app-stat-label">{{ result.a.name }}</div><div class="app-stat-value">{{ result.a.completed }}/{{ result.a.total }}</div></div>
-  <div class="app-stat-card"><div class="app-stat-label">{{ result.b.name }}</div><div class="app-stat-value">{{ result.b.completed }}/{{ result.b.total }}</div></div>
-</div>
-{% endif %}
+
+<style type="text/css">
+  :root {
+    --glass-bg: rgba(255, 255, 255, 0.1);
+    --glass-border: rgba(255, 255, 255, 0.2);
+    --shadow-lg: 0 25px 45px rgba(0,0,0,0.1);
+    --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
+
+  .glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    box-shadow: var(--shadow-lg);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .glass-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 35px 60px rgba(0,0,0,0.15);
+  }
+
+  .app-stat-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: 50px;
+    color: white;
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+
+  .comparison-card {
+    border-radius: 24px;
+    overflow: hidden;
+  }
+
+  .comparison-card .card-header {
+    background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+    border: none;
+    padding: 1.5rem 2rem;
+    border-radius: 24px 24px 0 0;
+  }
+
+  .comparison-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+  }
+
+  .unique-a .comparison-icon { background: linear-gradient(135deg, #ffecd2, #fcb69f); }
+  .unique-b .comparison-icon { background: linear-gradient(135deg, #d1f2eb, #a8e6cf); }
+  .common .comparison-icon { background: linear-gradient(135deg, #e0e7ff, #c7d2fe); }
+
+  .topics-list {
+    max-height: 300px;
+    overflow-y: auto;
+  }
+
+  .topic-item {
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    transition: all 0.3s ease;
+  }
+
+  .topic-item:hover {
+    transform: translateX(8px);
+    background: rgba(255,255,255,0.2) !important;
+  }
+
+  .vs-divider {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+  }
+
+  .fade-in {
+    animation: fadeInUp 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 768px) {
+    .vs-divider { order: 3; margin: 1rem 0; }
+    .glass-card { margin-bottom: 1.5rem; }
+  }
+
+  .badge-gradient-a {
+    background: linear-gradient(45deg, #4facfe, #00f2fe);
+  }
+
+  .badge-gradient-b {
+    background: linear-gradient(45deg, #10b981, #34d399);
+  }
+</style>
+
+<script type="text/javascript">
+function printComparison() {
+  window.print();
+}
+
+// Animate elements on scroll
+function animateOnScroll() {
+  const elements = document.querySelectorAll('.glass-card, .comparison-card');
+  elements.forEach((el, index) => {
+    const rect = el.getBoundingClientRect();
+    if (rect.top < window.innerHeight - 100) {
+      el.style.opacity = '1';
+      el.style.transform = 'translateY(0)';
+    }
+  });
+}
+
+window.addEventListener('scroll', animateOnScroll);
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.glass-card, .comparison-card').forEach(el => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(30px)';
+    el.style.transition = 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
+  });
+  setTimeout(animateOnScroll, 100);
+
+  // Apply progress bar widths from data attributes
+  document.querySelectorAll('.progress-bar[data-width]').forEach(bar => {
+    bar.style.width = bar.dataset.width + '%';
+  });
+});
+</script>
 {% endblock %}

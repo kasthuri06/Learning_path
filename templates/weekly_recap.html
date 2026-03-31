@@ -1,36 +1,441 @@
 {% extends "base.html" %}
-{% block title %}Weekly Recap{% endblock %}
+{% block title %}📊 Weekly Learning Recap{% endblock %}
 {% block content %}
-<h1 class="app-title mb-3">Weekly Recap</h1>
-<div class="app-form-card mb-3">
-  <div class="d-flex justify-content-between align-items-center">
-    <div class="app-subtitle">Completions in the last 7 days</div>
-    <a href="javascript:window.print()" class="btn app-btn-primary btn-sm">Print / Save as PDF</a>
-  </div>
-</div>
-{% if items %}
-<div class="card">
-  <div class="card-body">
-    <div class="table-responsive">
-      <table class="table table-sm">
-        <thead><tr><th>Date</th><th>Topic</th><th>Path</th><th>Minutes</th><th>Notes</th></tr></thead>
-        <tbody>
-          {% for r in items %}
-          <tr>
-            <td>{{ r.date }}</td>
-            <td>{{ r.topic }}</td>
-            <td>{{ r.path_name }}</td>
-            <td>{{ r.minutes }}</td>
-            <td>{{ r.notes }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-        <tfoot><tr><th colspan="3" class="text-end">Total</th><th>{{ total_minutes }}</th><th></th></tr></tfoot>
-      </table>
+<!-- Recap Hero -->
+<div class="recap-hero glass-card p-5 mb-6 position-relative overflow-hidden fade-in-up">
+  <div class="hero-bg-gradient"></div>
+  <div class="row align-items-center">
+    <div class="col-lg-8">
+      <div class="recap-badge d-inline-flex align-items-center gap-3 mb-3">
+        <div class="status-badge bg-gradient-primary">
+          <i class="fas fa-chart-line"></i>
+        </div>
+        <h1 class="recap-title mb-0 display-5 fw-bold" style="background: var(--primary-gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
+          Weekly Recap
+        </h1>
+      </div>
+      <div class="recap-meta">
+        <h3 class="recap-subtitle mb-2 lh-1">
+          Your learning activity from the past 7 days
+        </h3>
+        <div class="recap-stats d-flex flex-wrap gap-4 mb-0">
+          <div class="stat-item">
+            <div class="stat-number h2 fw-bold text-primary">{{ items|length }}</div>
+            <div class="stat-label text-muted small">Sessions</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number h2 fw-bold text-success">{{ total_minutes }}</div>
+            <div class="stat-label text-muted small">Total Minutes</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number h2 fw-bold text-info">{{ items|map(attribute='path_name')|unique|list|length }}</div>
+            <div class="stat-label text-muted small">Paths Active</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4 text-lg-end">
+      <div class="action-buttons glass-card p-4 d-flex flex-column gap-3">
+        <button onclick="window.print()" class="btn btn-primary btn-lg rounded-pill shadow-lg print-btn">
+          <i class="fas fa-print me-2"></i>Print PDF
+        </button>
+        <a href="{{ url_for('export_recaps_csv') }}" class="btn btn-outline-primary rounded-pill">
+          <i class="fas fa-file-csv me-2"></i>Export CSV
+        </a>
+        <a href="{{ url_for('export_recaps_ics') }}" class="btn btn-outline-success rounded-pill">
+          <i class="fas fa-calendar-plus me-2"></i>Add to Calendar
+        </a>
+      </div>
     </div>
   </div>
+</div>
+
+<!-- Motivation Message -->
+<div class="motivation-card glass-card p-5 mb-5 text-center">
+  <div class="motivation-icon mb-4">
+    <i class="fas fa-rocket fa-3x text-primary"></i>
   </div>
+  {% if items %}
+  <h4 class="mb-3 fw-bold">
+    🚀 {{ items|length }} amazing learning sessions this week!
+  </h4>
+  <p class="lead text-muted mb-4">
+    You've invested <strong>{{ total_minutes }} minutes</strong> in your growth. 
+    Keep up the momentum! 💪
+  </p>
+  {% else %}
+  <h4 class="mb-3 text-muted">
+    No sessions this week
+  </h4>
+  <p class="lead text-muted mb-4">
+    Your learning journey awaits. Start a roadmap today!
+  </p>
+  {% endif %}
+  <div class="motivation-actions">
+    <a href="{{ url_for('dashboard') }}" class="btn btn-primary rounded-pill px-5 me-3">
+      <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+    </a>
+    <a href="{{ url_for('roadmap') }}" class="btn btn-outline-primary rounded-pill px-5">
+      <i class="fas fa-route me-2"></i>Open Roadmaps
+    </a>
+  </div>
+</div>
+
+<!-- Recap Table -->
+{% if items %}
+<div class="recap-table-container glass-card shadow-xl">
+  <div class="table-header p-4">
+    <h5 class="mb-0 fw-bold">
+      <i class="fas fa-table me-2 text-primary"></i>
+      Detailed Activity Log
+    </h5>
+    <p class="small text-muted mb-0 mt-1">Last 7 days • Sorted by date</p>
+  </div>
+  
+  <div class="table-responsive">
+    <table class="table table-hover modern-table mb-0">
+      <thead class="table-dark-gradient">
+        <tr>
+          <th scope="col" class="date-col">
+            <i class="fas fa-calendar-day me-2"></i>Date
+          </th>
+          <th scope="col" class="topic-col">
+            <i class="fas fa-brain me-2"></i>Topic
+          </th>
+          <th scope="col" class="path-col">
+            <i class="fas fa-route me-2"></i>Learning Path
+          </th>
+          <th scope="col" class="time-col">
+            <i class="fas fa-clock me-2"></i>Minutes
+          </th>
+          <th scope="col" class="notes-col">
+            <i class="fas fa-sticky-note me-2"></i>Notes
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in items %}
+        <tr class="recap-row hover-scale">
+          <td class="date-cell fw-semibold">
+            <div class="date-badge rounded-pill px-3 py-1">{{ r.date }}</div>
+          </td>
+          <td class="topic-cell fw-semibold text-primary">{{ r.topic }}</td>
+          <td class="path-cell">
+            <span class="path-tag rounded-pill px-3 py-1">{{ r.path_name }}</span>
+          </td>
+          <td class="time-cell">
+            <div class="time-circle d-inline-flex align-items-center justify-content-center me-2">
+              {{ r.minutes }}
+            </div>
+            <span class="fw-semibold text-success">min</span>
+          </td>
+          <td class="notes-cell">
+            {% if r.notes %}
+            <span class="notes-badge badge bg-light text-dark px-3 py-2 rounded-pill">
+              {{ r.notes[:50] }}{% if r.notes|length > 50 %}...{% endif %}
+            </span>
+            {% else %}
+            <span class="text-muted small">No notes</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot class="table-footer">
+        <tr class="fw-bold">
+          <th colspan="3" class="text-end">📈 Weekly Total</th>
+          <td class="text-success">
+            <i class="fas fa-trophy me-1"></i>{{ total_minutes }} min
+          </td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+  
+  <!-- Summary Cards -->
+  <div class="table-footer-section p-4 border-top" style="border-top: 1px solid var(--glass-border);">
+    <div class="row g-3">
+      <div class="col-md-3">
+        <div class="summary-card text-center p-3">
+          <div class="h4 fw-bold text-primary mb-1">{{ items|length }}</div>
+          <div class="small text-muted">Sessions</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="summary-card text-center p-3">
+          <div class="h4 fw-bold text-success mb-1">{{ total_minutes }}</div>
+          <div class="small text-muted">Total Time</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="summary-card text-center p-3">
+          <div class="h4 fw-bold text-info mb-1">
+            {{ (total_minutes / 7)|round(0) if total_minutes else 0 }}
+          </div>
+          <div class="small text-muted">Daily Avg</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="summary-card text-center p-3">
+          <div class="h4 fw-bold text-warning mb-1">
+            {{ (items|length / 7)|round(1) if items|length else 0 }}
+          </div>
+          <div class="small text-muted">Sessions/Day</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 {% else %}
-<div class="app-alert app-alert-info">No completions in the last week.</div>
+<!-- Empty State -->
+<div class="empty-recap glass-card p-8 text-center">
+  <div class="empty-icon mb-4">
+    <i class="fas fa-calendar-times fa-3x text-muted"></i>
+  </div>
+  <h3 class="mb-3 fw-bold text-muted">No activity this week</h3>
+  <p class="lead text-muted mb-5">
+    Your learning journey is just getting started. 
+    Complete your first roadmap topic to see your progress here!
+  </p>
+  <div class="empty-actions d-flex flex-column flex-sm-row gap-3 justify-content-center">
+    <a href="{{ url_for('roadmap') }}" class="btn btn-primary btn-lg rounded-pill px-5">
+      <i class="fas fa-route me-2"></i>Open Roadmaps
+    </a>
+    <a href="{{ url_for('generate') }}" class="btn btn-outline-primary btn-lg rounded-pill px-5">
+      <i class="fas fa-magic me-2"></i>Generate New Path
+    </a>
+  </div>
+</div>
 {% endif %}
+
+<!-- Next Week Goals -->
+<div class="goals-preview glass-card p-5 mt-6">
+  <div class="row align-items-center">
+    <div class="col-md-8">
+      <h5 class="mb-3">
+        <i class="fas fa-bullseye text-success me-2"></i>
+        Next Week Goals
+      </h5>
+      <p class="mb-0 text-muted">
+        {% if items %}
+        Aim for <strong>{{ (total_minutes * 1.2)|round }} minutes</strong> 
+        (20% more than last week) across <strong>{{ (items|length * 1.1)|round }}</strong> sessions.
+        {% else %}
+        Start with <strong>3 sessions</strong> and <strong>120 minutes</strong> this week!
+        {% endif %}
+      </p>
+    </div>
+    <div class="col-md-4 text-md-end">
+      <a href="{{ url_for('reviews') }}" class="btn btn-outline-success rounded-pill px-4">
+        <i class="fas fa-brain me-2"></i>Spaced Reviews
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+.recap-hero {
+  border-radius: 32px;
+  backdrop-filter: blur(40px);
+  border: 1px solid var(--glass-border);
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-bg-gradient {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(79,70,229,0.06), rgba(16,185,129,0.06));
+  border-radius: 32px;
+}
+
+.status-badge {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: var(--primary-gradient);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+}
+
+.recap-stats .stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem;
+  background: rgba(255,255,255,0.1);
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+}
+
+.action-buttons {
+  backdrop-filter: blur(20px);
+  border-radius: 24px;
+  border: 1px solid var(--glass-border);
+}
+
+.modern-table {
+  border-radius: 0 0 24px 24px;
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+}
+
+.table-dark-gradient {
+  background: linear-gradient(135deg, var(--primary-gradient));
+  color: white;
+}
+
+.table-dark-gradient th {
+  border: none;
+  padding: 1.5rem 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+}
+
+.recap-row {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.recap-row:hover {
+  background: rgba(79, 70, 229, 0.05);
+  transform: scale(1.01);
+}
+
+.hover-scale:hover {
+  transform: scale(1.005);
+}
+
+.date-badge {
+  background: linear-gradient(135deg, #3b82f6, #60a5fa);
+  color: white;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.path-tag {
+  background: linear-gradient(135deg, #10b981, #34d399);
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.time-circle {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, #10b981, #34d399);
+  color: white;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.notes-badge {
+  font-size: 0.8rem;
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.table-footer {
+  background: linear-gradient(135deg, rgba(255,255,255,0.8), rgba(255,255,255,0.6));
+  backdrop-filter: blur(20px);
+}
+
+.summary-card {
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  transition: all 0.3s ease;
+}
+
+.summary-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(40px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in-up { animation: fade-in-up 0.8s ease-out forwards; }
+
+.motivation-card {
+  border-radius: 24px;
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+}
+
+.goals-preview {
+  border-radius: 24px;
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+}
+
+.print-btn:active, .print-btn:focus {
+  transform: scale(0.98);
+  box-shadow: 0 10px 25px rgba(59, 130, 246, 0.4);
+}
+
+@media print {
+  .glass-card, .recap-hero { 
+    box-shadow: none !important; border: 1px solid #e5e7eb !important; 
+    background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .table-dark-gradient { background: #3b82f6 !important; }
+  .action-buttons { display: none !important; }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Enhanced print functionality
+  window.printRecap = function() {
+    window.print();
+  };
+
+  // Row hover animations
+  document.querySelectorAll('.recap-row').forEach(row => {
+    row.addEventListener('mouseenter', () => {
+      row.style.transform = 'scale(1.01)';
+    });
+    row.addEventListener('mouseleave', () => {
+      row.style.transform = 'scale(1)';
+    });
+  });
+
+  // Staggered table row animation
+  document.querySelectorAll('.recap-row').forEach((row, index) => {
+    row.style.opacity = '0';
+    row.style.transform = 'translateY(20px)';
+    setTimeout(() => {
+      row.style.transition = 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
+      row.style.opacity = '1';
+      row.style.transform = 'translateY(0)';
+    }, index * 100);
+  });
+
+  // Print improvements
+  window.addEventListener('beforeprint', function() {
+    document.body.classList.add('printing');
+  });
+  
+  window.addEventListener('afterprint', function() {
+    document.body.classList.remove('printing');
+  });
+});
+</script>
 {% endblock %}

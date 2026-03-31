@@ -1,0 +1,337 @@
+{% extends "base.html" %}
+{% block title %}Profile – {{ username }}{% endblock %}
+{% block content %}
+
+<!-- Profile Header -->
+<div class="profile-hero mb-4">
+  <div class="profile-avatar">{{ username[0].upper() }}</div>
+  <div>
+    <h2 class="profile-name mb-1">{{ username }}</h2>
+    <div class="d-flex gap-2 flex-wrap mt-2">
+      <span class="dash-badge"><i class="fas fa-fire text-warning me-1"></i>{{ streak }} day streak</span>
+      <span class="dash-badge"><i class="fas fa-star text-warning me-1"></i>{{ xp }} XP</span>
+      <span class="dash-badge"><i class="fas fa-clock text-info me-1"></i>{{ total_minutes }} min studied</span>
+    </div>
+  </div>
+</div>
+
+<!-- Badges -->
+{% if badges %}
+<section class="mb-4">
+  <h6 class="profile-section-title">Achievements</h6>
+  <div class="d-flex gap-2 flex-wrap">
+    {% for b in badges %}
+    <div class="badge-pill text-{{ b.color }}">
+      <i class="fas fa-{{ b.icon }} me-1"></i>{{ b.label }}
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<!-- Stats Grid -->
+<section class="mb-4">
+  <h6 class="profile-section-title">Learning Stats</h6>
+  <div class="row g-3">
+    <div class="col-6 col-md-3">
+      <div class="dash-stat-card">
+        <div class="dash-stat-icon" style="background:rgba(99,102,241,.15);color:#6366f1"><i class="fas fa-route"></i></div>
+        <div class="dash-stat-val">{{ paths|length }}</div>
+        <div class="dash-stat-lbl">Active Paths</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="dash-stat-card">
+        <div class="dash-stat-icon" style="background:rgba(16,185,129,.15);color:#10b981"><i class="fas fa-check-circle"></i></div>
+        <div class="dash-stat-val">{{ completed_topics }}</div>
+        <div class="dash-stat-lbl">Topics Done</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="dash-stat-card">
+        <div class="dash-stat-icon" style="background:rgba(245,158,11,.15);color:#f59e0b"><i class="fas fa-fire"></i></div>
+        <div class="dash-stat-val">{{ streak }}</div>
+        <div class="dash-stat-lbl">Day Streak</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="dash-stat-card">
+        <div class="dash-stat-icon" style="background:rgba(59,130,246,.15);color:#3b82f6"><i class="fas fa-percentage"></i></div>
+        <div class="dash-stat-val">{{ progress_pct }}%</div>
+        <div class="dash-stat-lbl">Overall Progress</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Charts Row -->
+<section class="mb-4">
+  <h6 class="profile-section-title">Analytics</h6>
+  <div class="row g-3">
+    <div class="col-lg-5">
+      <div class="dash-card h-100">
+        <div class="dash-card-header"><span><i class="fas fa-circle-half-stroke text-primary me-2"></i>Overall Completion</span></div>
+        <div class="chart-wrap"><canvas id="progressChart" data-progress="{{ progress_pct }}"></canvas></div>
+      </div>
+    </div>
+    <div class="col-lg-7">
+      <div class="dash-card h-100">
+        <div class="dash-card-header"><span><i class="fas fa-chart-line text-success me-2"></i>Weekly Activity</span></div>
+        <div class="chart-wrap"><canvas id="weeklyChart" data-weekly='{{ weekly_data | tojson }}'></canvas></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Domain Radar -->
+<section class="mb-4">
+  <div class="row g-3">
+    <div class="col-lg-6">
+      <div class="dash-card h-100">
+        <div class="dash-card-header"><span><i class="fas fa-chart-radar text-info me-2"></i>Domain Breakdown</span></div>
+        <div class="chart-wrap"><canvas id="radarChart" data-domains='{{ domain_breakdown | tojson }}'></canvas></div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="dash-card h-100">
+        <div class="dash-card-header"><span><i class="fas fa-list-check text-warning me-2"></i>Path Progress</span></div>
+        <div class="p-3">
+          {% for p in paths %}
+          <div class="mb-3">
+            <div class="d-flex justify-content-between mb-1 small">
+              <span class="fw-semibold text-truncate" style="max-width:70%">{{ p.name }}</span>
+              <span class="text-muted">{{ p.progress_pct }}%</span>
+            </div>
+            <div class="progress" style="height:6px;border-radius:99px;background:rgba(255,255,255,.08)">
+              <div class="progress-bar" data-width="{{ p.progress_pct }}"
+                style="background:linear-gradient(90deg,#6366f1,#8b5cf6);border-radius:99px"
+                role="progressbar" aria-valuenow="{{ p.progress_pct }}" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+          </div>
+          {% else %}
+          <p class="text-muted text-center py-3">No active paths</p>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Activity Heatmap -->
+<section class="mb-4">
+  <h6 class="profile-section-title">Activity Heatmap – Last 12 Months</h6>
+  <div class="dash-card">
+    <div class="dash-card-header">
+      <span><i class="fas fa-calendar-check text-warning me-2"></i>Daily Learning Activity</span>
+      <span class="text-muted small">{{ streak }} day current streak</span>
+    </div>
+    <div class="heatmap-outer" id="heatmap-container" data-activity='{{ activity_heatmap | tojson }}'></div>
+    <div class="heatmap-legend">
+      <span class="hm-legend-text">Less</span>
+      <span class="hm-sq hm-0"></span>
+      <span class="hm-sq hm-1"></span>
+      <span class="hm-sq hm-2"></span>
+      <span class="hm-sq hm-3"></span>
+      <span class="hm-sq hm-4"></span>
+      <span class="hm-legend-text">More</span>
+    </div>
+  </div>
+</section>
+
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.js"></script>
+<style>
+:root {
+  --glass-bg: rgba(255,255,255,.06);
+  --glass-border: rgba(255,255,255,.1);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,.25);
+  --primary-gradient: linear-gradient(135deg,#667eea,#764ba2);
+}
+.profile-hero { display:flex;align-items:center;gap:1.25rem;flex-wrap:wrap; }
+.profile-avatar { width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:800;color:#fff;flex-shrink:0; }
+.profile-name { font-size:1.6rem;font-weight:800;letter-spacing:-.02em; }
+.profile-section-title { font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#64748b;margin-bottom:.75rem; }
+.badge-pill { display:inline-flex;align-items:center;padding:.35rem .85rem;border-radius:99px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);font-size:.8rem;font-weight:600; }
+.dash-badge { display:inline-flex;align-items:center;gap:.35rem;padding:.35rem .85rem;border-radius:99px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);font-size:.85rem;font-weight:600; }
+.dash-stat-card { background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:16px;padding:1.1rem 1rem;display:flex;flex-direction:column;align-items:center;gap:.4rem;text-align:center;transition:transform .2s; }
+.dash-stat-card:hover { transform:translateY(-3px); }
+.dash-stat-icon { width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.1rem; }
+.dash-stat-val { font-size:1.6rem;font-weight:800;line-height:1; }
+.dash-stat-lbl { font-size:.75rem;color:#94a3b8;font-weight:500; }
+.dash-card { background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:16px;overflow:hidden; }
+.dash-card-header { display:flex;align-items:center;justify-content:space-between;padding:.85rem 1.1rem;border-bottom:1px solid rgba(255,255,255,.07);font-weight:600;font-size:.9rem; }
+.chart-wrap { padding:1rem;height:220px;position:relative; }
+/* LeetCode-style heatmap */
+.heatmap-outer { padding: 1rem 1.25rem 0; overflow-x: auto; }
+.heatmap-calendar { display: flex; flex-direction: column; gap: 0; min-width: 680px; }
+.heatmap-month-labels { display: flex; margin-left: 28px; margin-bottom: 4px; }
+.hm-month-label { font-size: 11px; color: #64748b; font-weight: 500; text-align: left; }
+.heatmap-body { display: flex; gap: 0; }
+.heatmap-day-labels { display: flex; flex-direction: column; gap: 3px; margin-right: 6px; padding-top: 0; }
+.hm-day-label { font-size: 10px; color: #64748b; height: 13px; line-height: 13px; text-align: right; width: 22px; }
+.heatmap-weeks { display: flex; gap: 3px; }
+.hm-week { display: flex; flex-direction: column; gap: 3px; }
+.hm-sq { width: 13px; height: 13px; border-radius: 2px; cursor: default; transition: opacity .15s; }
+.hm-sq:hover { opacity: .75; outline: 1px solid rgba(255,255,255,.3); }
+.hm-0 { background: #161b22; }
+.hm-1 { background: #0e4429; }
+.hm-2 { background: #006d32; }
+.hm-3 { background: #26a641; }
+.hm-4 { background: #39d353; }
+.heatmap-legend { display: flex; align-items: center; gap: 4px; padding: .6rem 1.25rem .9rem; justify-content: flex-end; }
+.hm-legend-text { font-size: 11px; color: #64748b; }
+</style>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('.progress-bar[data-width]').forEach(b => b.style.width = b.dataset.width + '%');
+
+  // Doughnut
+  const pCtx = document.getElementById('progressChart');
+  if (pCtx) {
+    const pct = parseFloat(pCtx.dataset.progress) || 0;
+    new Chart(pCtx, {
+      type: 'doughnut',
+      data: { labels: ['Completed','Remaining'], datasets: [{ data: [pct, 100-pct], backgroundColor: ['#6366f1','rgba(255,255,255,.08)'], borderWidth: 0, cutout: '72%' }] },
+      options: { responsive:true, maintainAspectRatio:false, plugins: { legend: { position:'bottom', labels: { color:'#94a3b8', padding:16, usePointStyle:true } } } }
+    });
+  }
+
+  // Weekly line chart
+  const wCtx = document.getElementById('weeklyChart');
+  if (wCtx) {
+    const data = JSON.parse(wCtx.dataset.weekly || '[]');
+    new Chart(wCtx, {
+      type: 'line',
+      data: {
+        labels: data.map(d => d.week),
+        datasets: [{ label:'Topics', data: data.map(d => d.count), borderColor:'#6366f1', backgroundColor:'rgba(99,102,241,.15)', fill:true, tension:.4, pointRadius:4, pointBackgroundColor:'#6366f1' }]
+      },
+      options: { responsive:true, maintainAspectRatio:false, scales: { y:{ beginAtZero:true, ticks:{ color:'#64748b', stepSize:1 }, grid:{ color:'rgba(255,255,255,.06)' } }, x:{ ticks:{ color:'#64748b', maxRotation:45 }, grid:{ display:false } } }, plugins:{ legend:{ display:false } } }
+    });
+  }
+
+  // Radar
+  const rCtx = document.getElementById('radarChart');
+  if (rCtx) {
+    const domains = JSON.parse(rCtx.dataset.domains || '[]');
+    if (domains.length) {
+      new Chart(rCtx, {
+        type: 'radar',
+        data: {
+          labels: domains.map(d => d.domain),
+          datasets: [
+            { label:'Completed', data: domains.map(d => d.completed), backgroundColor:'rgba(99,102,241,.2)', borderColor:'#6366f1', pointBackgroundColor:'#6366f1', borderWidth:2 },
+            { label:'Total', data: domains.map(d => d.total), backgroundColor:'rgba(16,185,129,.1)', borderColor:'#10b981', pointBackgroundColor:'#10b981', borderWidth:2 }
+          ]
+        },
+        options: { responsive:true, maintainAspectRatio:false, scales:{ r:{ min:0, ticks:{ color:'#64748b', backdropColor:'transparent' }, grid:{ color:'rgba(255,255,255,.08)' }, pointLabels:{ color:'#94a3b8', font:{ size:11 } } } }, plugins:{ legend:{ labels:{ color:'#94a3b8', usePointStyle:true } } } }
+      });
+    }
+  }
+
+  // LeetCode-style heatmap with month labels
+  const hm = document.getElementById('heatmap-container');
+  if (hm) {
+    const activityMap = JSON.parse(hm.dataset.activity || '{}');
+    const maxVal = Math.max(1, ...Object.values(activityMap).map(Number));
+    const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+    // Use local date to avoid UTC offset shifting dates
+    const todayLocal = new Date();
+    todayLocal.setHours(0,0,0,0);
+
+    const toKey = (d) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth()+1).padStart(2,'0');
+      const day = String(d.getDate()).padStart(2,'0');
+      return `${y}-${m}-${day}`;
+    };
+
+    // Start exactly 52 weeks ago, aligned to Sunday
+    const start = new Date(todayLocal);
+    start.setDate(todayLocal.getDate() - 364);
+    start.setDate(start.getDate() - start.getDay()); // rewind to Sunday
+
+    // Build week columns: each week = [Sun, Mon, Tue, Wed, Thu, Fri, Sat]
+    const weeks = [];
+    const cur = new Date(start);
+    while (cur <= todayLocal) {
+      const week = [];
+      for (let i = 0; i < 7; i++) {
+        week.push(new Date(cur));
+        cur.setDate(cur.getDate() + 1);
+      }
+      weeks.push(week);
+    }
+
+    // Month label row — one span per week column
+    const monthLabelRow = document.createElement('div');
+    monthLabelRow.className = 'heatmap-month-labels';
+    // left offset to align with day-label column
+    const dayLabelSpacer = document.createElement('span');
+    dayLabelSpacer.style.cssText = 'display:inline-block;width:28px;flex-shrink:0';
+    monthLabelRow.appendChild(dayLabelSpacer);
+
+    let lastLabelMonth = -1;
+    weeks.forEach((week, wi) => {
+      const span = document.createElement('span');
+      span.className = 'hm-month-label';
+      span.style.cssText = 'display:inline-block;width:16px;flex-shrink:0;overflow:visible;white-space:nowrap';
+      // Show month name on the first week where the 1st of a new month falls
+      const firstOfMonth = week.find(d => d.getDate() === 1);
+      if (firstOfMonth && firstOfMonth.getMonth() !== lastLabelMonth) {
+        span.textContent = MONTHS[firstOfMonth.getMonth()];
+        lastLabelMonth = firstOfMonth.getMonth();
+      }
+      monthLabelRow.appendChild(span);
+    });
+
+    // Day labels: Sun–Sat, show Mon/Wed/Fri text only
+    const dayLabelsEl = document.createElement('div');
+    dayLabelsEl.className = 'heatmap-day-labels';
+    ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach((lbl, i) => {
+      const el = document.createElement('div');
+      el.className = 'hm-day-label';
+      el.textContent = (i === 1 || i === 3 || i === 5) ? lbl : '';
+      dayLabelsEl.appendChild(el);
+    });
+
+    // Week columns
+    const weeksEl = document.createElement('div');
+    weeksEl.className = 'heatmap-weeks';
+    weeks.forEach(week => {
+      const col = document.createElement('div');
+      col.className = 'hm-week';
+      week.forEach(date => {
+        const sq = document.createElement('div');
+        if (date > todayLocal) {
+          sq.className = 'hm-sq hm-0';
+          sq.style.visibility = 'hidden';
+        } else {
+          const key = toKey(date);
+          const cnt = activityMap[key] || 0;
+          const lvl = cnt === 0 ? 0 : cnt / maxVal <= .25 ? 1 : cnt / maxVal <= .5 ? 2 : cnt / maxVal <= .75 ? 3 : 4;
+          sq.className = `hm-sq hm-${lvl}`;
+          sq.title = `${key}: ${cnt} topic${cnt !== 1 ? 's' : ''}`;
+        }
+        col.appendChild(sq);
+      });
+      weeksEl.appendChild(col);
+    });
+
+    const body = document.createElement('div');
+    body.className = 'heatmap-body';
+    body.appendChild(dayLabelsEl);
+    body.appendChild(weeksEl);
+
+    const calendar = document.createElement('div');
+    calendar.className = 'heatmap-calendar';
+    calendar.appendChild(monthLabelRow);
+    calendar.appendChild(body);
+
+    hm.appendChild(calendar);
+  }
+});
+</script>
+{% endblock %}

@@ -3,34 +3,447 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Print Reviews</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <title>Learning Path Reviews</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.1/css/all.min.css" rel="stylesheet">
   <style>
-    body { background: #fff; color: #000; }
-    .title { font-size: 24px; font-weight: 700; margin: 16px 0; }
-    .subtitle { color: #444; margin-bottom: 16px; }
-    .table thead th { background: #f1f5f9; }
-    @media print { .no-print { display: none; } }
+    @import url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30"><path fill="%23f8fafc" d="M0 0h30v30H0z"/></svg>');
+    
+    * {
+      box-sizing: border-box;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    body {
+      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+      color: #1e293b;
+      line-height: 1.6;
+      margin: 0;
+      padding: 2rem;
+      min-height: 100vh;
+    }
+
+    .print-header {
+      text-align: center;
+      margin-bottom: 3rem;
+      padding-bottom: 2rem;
+      border-bottom: 4px solid linear-gradient(90deg, #4f46e5, #7c3aed);
+      background: linear-gradient(135deg, rgba(79, 70, 229, 0.05), rgba(124, 58, 237, 0.05));
+      border-radius: 20px;
+      padding: 2.5rem;
+      margin: -2rem -2rem 3rem -2rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .print-header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .print-logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      font-size: 1.2rem;
+      color: #4f46e5;
+    }
+
+    .print-title {
+      font-size: 2.5rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #ec4899 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin: 0 0 0.5rem 0;
+      letter-spacing: -0.02em;
+    }
+
+    .print-subtitle {
+      font-size: 1.25rem;
+      color: #64748b;
+      font-weight: 500;
+      margin: 0;
+    }
+
+    .print-meta {
+      display: flex;
+      gap: 2rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 1.5rem;
+    }
+
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: #64748b;
+      font-size: 0.95rem;
+    }
+
+    .reviews-table-container {
+      background: rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(20px);
+      border-radius: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      margin-bottom: 2rem;
+    }
+
+    .table-header {
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      color: white;
+      position: relative;
+    }
+
+    .table-header::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #ec4899, #f59e0b);
+    }
+
+    .table th {
+      font-weight: 700;
+      font-size: 0.95rem;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      padding: 1.5rem 1.25rem;
+      border: none;
+      position: relative;
+    }
+
+    .table td {
+      padding: 1.25rem;
+      border-color: rgba(0, 0, 0, 0.05);
+      vertical-align: middle;
+      font-size: 0.95rem;
+    }
+
+    .table tbody tr {
+      transition: all 0.3s ease;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .table tbody tr:hover {
+      background: rgba(79, 70, 229, 0.05);
+      transform: scale(1.01);
+    }
+
+    .path-badge {
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .topic-title {
+      font-weight: 600;
+      color: #1e293b;
+      margin-bottom: 0.25rem;
+    }
+
+    .due-date {
+      font-family: 'SF Mono', monospace;
+      font-weight: 600;
+      color: #059669;
+      background: rgba(5, 150, 105, 0.1);
+      padding: 0.5rem 1rem;
+      border-radius: 12px;
+      display: inline-block;
+      font-size: 0.9rem;
+    }
+
+    .status-badge {
+      padding: 0.5rem 1.25rem;
+      border-radius: 25px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .status-done {
+      background: linear-gradient(135deg, #10b981, #34d399);
+      color: white;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+
+    .status-pending {
+      background: linear-gradient(135deg, #f59e0b, #fbbf24);
+      color: white;
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+    }
+
+    .no-print {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      z-index: 1000;
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 50px;
+      color: white;
+      font-weight: 600;
+      box-shadow: 0 10px 30px rgba(79, 70, 229, 0.4);
+      transition: all 0.3s ease;
+    }
+
+    .no-print:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 20px 40px rgba(79, 70, 229, 0.5);
+    }
+
+    .print-footer {
+      text-align: center;
+      padding: 2rem;
+      color: #94a3b8;
+      font-size: 0.9rem;
+      border-top: 1px solid rgba(0, 0, 0, 0.1);
+      margin-top: 3rem;
+    }
+
+    /* Print Styles */
+    @media print {
+      body {
+        background: white !important;
+        color: black !important;
+        padding: 1in !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      
+      .no-print { display: none !important; }
+      
+      .print-header {
+        margin: -1in -1in 2rem -1in !important;
+        border-radius: 0 !important;
+        background: white !important;
+        border-bottom: 3px solid #4f46e5 !important;
+        box-shadow: none !important;
+      }
+      
+      .reviews-table-container {
+        background: white !important;
+        border: 1px solid #e2e8f0 !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+      }
+      
+      .table-header {
+        background: #4f46e5 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      
+      .table th {
+        color: white !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      
+      .path-badge, .status-badge {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      
+      .print-footer { 
+        color: #64748b !important;
+        border-top-color: #e2e8f0 !important;
+      }
+    }
+
+    @media (max-width: 768px) {
+      body { padding: 1rem; }
+      .print-header { margin: -1rem -1rem 2rem -1rem; padding: 2rem 1.5rem; }
+      .print-title { font-size: 2rem; }
+      .table-responsive { font-size: 0.9rem; }
+      .table th, .table td { padding: 0.75rem 0.5rem; }
+    }
   </style>
-  <script>window.addEventListener('load', function(){ setTimeout(function(){ window.print(); }, 300); });</script>
-  </head>
-<body class="container py-4">
-  <div class="no-print mb-3"><a href="javascript:window.print()" class="btn btn-primary btn-sm">Print</a></div>
-  <div class="title">Reviews</div>
-  <div class="table-responsive">
-    <table class="table table-sm">
-      <thead><tr><th>Path</th><th>Topic</th><th>Due date</th><th>Status</th></tr></thead>
-      <tbody>
-        {% for r in items %}
-        <tr>
-          <td>{{ r.path_name }}</td>
-          <td>{{ r.topic }}</td>
-          <td>{{ r.due_date }}</td>
-          <td>{% if r.completed %}Done{% else %}Pending{% endif %}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+</head>
+<body class="container-fluid p-4">
+  
+  <!-- Print Trigger -->
+  <div class="no-print mb-4">
+    <button onclick="window.print()" class="btn shadow-lg">
+      <i class="fas fa-print me-2"></i>Print Review Summary
+    </button>
+    <button onclick="window.close()" class="btn btn-outline-secondary ms-2">
+      <i class="fas fa-times me-1"></i>Close
+    </button>
   </div>
+
+  <!-- Header -->
+  <div class="print-header">
+    <div class="print-logo">
+      <i class="fas fa-brain fs-2"></i>
+      <strong>AI Learning Platform</strong>
+    </div>
+    <h1 class="print-title">📚 Learning Path Reviews</h1>
+    <p class="print-subtitle">Review Summary • Generated on {{ 'now'|strftime('%B %d, %Y • %I:%M %p') }}</p>
+    <div class="print-meta">
+      <div class="meta-item">
+        <i class="fas fa-list-check"></i>
+        <span>{{ items|length }} reviews</span>
+      </div>
+      <div class="meta-item">
+        <i class="fas fa-clock"></i>
+        <span>Next 30 days</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reviews Table -->
+  {% if items %}
+  <div class="reviews-table-container">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead class="table-header">
+          <tr>
+            <th><i class="fas fa-route me-2"></i>Learning Path</th>
+            <th><i class="fas fa-book me-2"></i>Topic</th>
+            <th><i class="fas fa-calendar me-2"></i>Due Date</th>
+            <th><i class="fas fa-circle-check me-2"></i>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in items %}
+          <tr>
+            <td>
+              <span class="path-badge">
+                <i class="fas fa-{{ 'brain' if 'AI' in r.path_name else 'code' }}"></i>
+                {{ r.path_name }}
+              </span>
+            </td>
+            <td>
+              <div>
+                <div class="topic-title">{{ r.topic }}</div>
+              </div>
+            </td>
+            <td>
+              <span class="due-date">
+                <i class="fas fa-calendar-day me-1"></i>
+                {{ r.due_date }}
+              </span>
+            </td>
+            <td>
+              {% if r.completed %}
+              <span class="status-badge status-done">
+                <i class="fas fa-check-circle me-1"></i>Done
+              </span>
+              {% else %}
+              <span class="status-badge status-pending">
+                <i class="fas fa-clock me-1"></i>Pending
+              </span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Summary Stats -->
+  <div class="row g-4 mt-4">
+    <div class="col-md-3">
+      <div class="glass-card text-center p-4">
+        <div class="fs-1 text-success mb-2">✓</div>
+        <div class="h4 fw-bold mb-1">{{ items|selectattr('completed')|list|length }}</div>
+        <div class="text-muted">Completed</div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="glass-card text-center p-4">
+        <div class="fs-1 text-warning mb-2">⏳</div>
+        <div class="h4 fw-bold mb-1">{{ items|rejectattr('completed')|list|length }}</div>
+        <div class="text-muted">Pending</div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="glass-card p-4">
+        <h6 class="mb-2"><i class="fas fa-lightbulb text-primary me-2"></i>Tip</h6>
+        <p class="small mb-0 text-muted">Review pending topics daily to maximize retention (Spaced Repetition)</p>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="glass-card text-center py-8 px-6">
+    <i class="fas fa-check-circle fs-1 text-success mb-4 opacity-75"></i>
+    <h4 class="mb-3">🎉 No reviews due!</h4>
+    <p class="lead text-muted mb-4">You're all caught up with your learning reviews.</p>
+    <p class="text-muted mb-0">Keep up the great work! 🚀</p>
+  </div>
+  {% endif %}
+
+  <!-- Footer -->
+  <div class="print-footer">
+    <div class="row align-items-center">
+      <div class="col-md-6">
+        <p class="mb-2 mb-md-0">
+          <i class="fas fa-graduation-cap me-2"></i>
+          AI Learning Platform • Review Summary
+        </p>
+      </div>
+      <div class="col-md-6 text-md-end">
+        <p class="mb-0 small">
+          Generated: {{ 'now'|strftime('%B %d, %Y %I:%M %p IST') }} 
+          <i class="fas fa-print ms-2"></i>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    window.addEventListener('load', function() {
+      // Auto-print after 500ms
+      setTimeout(function() {
+        window.print();
+      }, 500);
+      
+      // Handle print dialog close
+      window.matchMedia('print').addListener(function(mql) {
+        if (!mql.matches) {
+          // User canceled print - offer close
+          setTimeout(() => {
+            if (confirm('Close this review summary?')) {
+              window.close();
+            }
+          }, 500);
+        }
+      });
+    });
+
+    // Smooth hover effects
+    document.querySelectorAll('tr').forEach(row => {
+      row.addEventListener('mouseenter', () => {
+        row.style.transform = 'scale(1.01)';
+      });
+      row.addEventListener('mouseleave', () => {
+        row.style.transform = 'scale(1)';
+      });
+    });
+  </script>
 </body>
 </html>

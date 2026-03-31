@@ -1,34 +1,488 @@
 {% extends "base.html" %}
-{% block title %}Shared Roadmap{% endblock %}
+{% block title %}👥 {{ path_name or 'Shared Learning Roadmap' }}{% endblock %}
 {% block content %}
-<h1 class="app-title mb-2">Shared Roadmap</h1>
-<p class="app-subtitle mb-4">{% if path_name %}{{ path_name }} · {% endif %}Target role: <strong>{{ target_role }}</strong></p>
+<!-- Shared Roadmap Hero -->
+<div class="shared-hero glass-card p-5 mb-6 position-relative overflow-hidden fade-in-up">
+  <div class="hero-decoration"></div>
+  <div class="row align-items-center g-4">
+    <div class="col-lg-8">
+      <div class="shared-badge mb-3 d-inline-flex align-items-center gap-3">
+        <div class="share-icon">
+          <i class="fas fa-share-alt fa-2x text-primary"></i>
+        </div>
+        <div>
+          <h1 class="shared-title mb-1 display-5 fw-bold" style="background: var(--primary-gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
+            {{ path_name or 'Shared Learning Roadmap' }}
+          </h1>
+          <div class="shared-meta">
+            <span class="role-badge badge bg-primary-subtle text-primary px-3 py-2 rounded-pill">
+              <i class="fas fa-user-tie me-2"></i>{{ target_role }}
+            </span>
+          </div>
+        </div>
+      </div>
+      <div class="hero-description">
+        <p class="lead mb-3">A curated learning path designed for {{ target_role }} mastery. All resources are live links.</p>
+        <div class="action-preview d-flex flex-wrap gap-2">
+          <button class="btn btn-outline-primary btn-sm rounded-pill px-4 clone-shared-btn" data-roadmap-id="{{ roadmap_id or '' }}">
+            <i class="fas fa-clone me-2"></i>Import to My Paths
+          </button>
+          <a href="{{ url_for('print_roadmap', roadmap_id=roadmap_id) }}" target="_blank" class="btn btn-outline-secondary btn-sm rounded-pill px-4">
+            <i class="fas fa-print me-2"></i>Print PDF
+          </a>
+          <button class="btn btn-success btn-sm rounded-pill px-4 print-ics-btn" data-roadmap-id="{{ roadmap_id or '' }}">
+            <i class="fas fa-calendar-plus me-2"></i>Export Calendar
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="share-stats glass-card p-4">
+        <div class="stat-item d-flex align-items-center gap-3 mb-3">
+          <div class="stat-circle bg-primary">
+            <i class="fas fa-calendar-week"></i>
+          </div>
+          <div>
+            <div class="stat-number">{{ roadmap|length }}</div>
+            <div class="stat-label small text-muted">Weeks</div>
+          </div>
+        </div>
+        <div class="stat-item d-flex align-items-center gap-3">
+          <div class="stat-circle bg-success">
+            <i class="fas fa-book-open"></i>
+          </div>
+          <div>
+            <div class="stat-number">{{ roadmap|sum(attribute='resources')|sum or 0 }}</div>
+            <div class="stat-label small text-muted">Resources</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Roadmap Content -->
 {% if not roadmap %}
-<div class="app-alert app-alert-info">No content.</div>
+<div class="empty-shared glass-card p-8 text-center">
+  <div class="empty-icon mb-4">
+    <i class="fas fa-road-barriers fa-3x text-muted"></i>
+  </div>
+  <h3 class="mb-3 fw-bold text-muted">No Roadmap Content</h3>
+  <p class="lead text-muted mb-4">This shared roadmap is empty or expired.</p>
+  <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center">
+    <a href="{{ url_for('generate') }}" class="btn btn-primary rounded-pill px-5">
+      <i class="fas fa-magic me-2"></i>Create Your Own
+    </a>
+    <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary rounded-pill px-5">
+      <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+    </a>
+  </div>
+</div>
 {% else %}
-{% for week in roadmap %}
-<div class="app-roadmap-week card mb-3">
-  <div class="card-header">Week {{ week.week }}</div>
-  <div class="card-body">
-    <h5 class="card-title mb-3">Topic: {{ week.topic }}</h5>
-    {% if week.tasks %}
-    <h6 class="app-label mb-2">Tasks</h6>
-    <ul class="mb-3 ps-3" style="color: var(--app-text-muted);">
-      {% for task in week.tasks %}
-      <li>{{ task }}</li>
-      {% endfor %}
-    </ul>
-    {% endif %}
-    {% if week.resources %}
-    <h6 class="app-label mb-2">Resources</h6>
-    <ul class="list-unstyled">
-      {% for url in week.resources %}
-      <li><a href="{{ url }}" target="_blank" rel="noopener">{{ url }}</a></li>
-      {% endfor %}
-    </ul>
-    {% endif %}
+<div class="roadmap-container">
+  <div class="roadmap-progress mb-5">
+    <div class="progress-wrapper glass-card p-4">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0">
+          <i class="fas fa-route text-primary me-2"></i>Roadmap Overview
+        </h5>
+        <span class="progress-badge badge bg-info rounded-pill">{{ roadmap|length }} Weeks Complete Path</span>
+      </div>
+      <div class="progress-bar-container">
+        <div class="roadmap-progress-bar">
+          {% for week in roadmap %}
+          <div class="week-progress-segment" data-week="{{ loop.index }}"></div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
   </div>
+
+  <!-- Week Cards -->
+  <div class="weeks-grid">
+    {% for week in roadmap %}
+    <div class="week-card glass-card lift-hover mb-4" data-week="{{ week.week }}">
+      <div class="week-header">
+        <div class="week-number-badge">
+          <i class="fas fa-calendar-week me-2"></i>
+          Week {{ week.week }}
+        </div>
+        <h4 class="week-title mb-0 fw-bold">{{ week.topic }}</h4>
+      </div>
+      
+      <div class="week-body p-4">
+        <!-- Tasks -->
+        {% if week.tasks %}
+        <div class="section tasks-section mb-4">
+          <h6 class="section-header">
+            <i class="fas fa-tasks text-success me-2"></i>📋 Tasks
+            <span class="section-count badge bg-success-subtle text-success ms-2">{{ week.tasks|length }}</span>
+          </h6>
+          <div class="tasks-list">
+            {% for task in week.tasks %}
+            <div class="task-item p-3 mb-2 glass-card-hover d-flex align-items-center gap-3">
+              <div class="task-icon rounded-circle bg-success-subtle text-success d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                📋
+              </div>
+              <span class="flex-grow-1">{{ task }}</span>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Resources -->
+        {% if week.resources %}
+        <div class="section resources-section">
+          <h6 class="section-header">
+            <i class="fas fa-book-open text-primary me-2"></i>📚 Resources
+            <span class="section-count badge bg-primary-subtle text-primary ms-2">{{ week.resources|length }}</span>
+          </h6>
+          <div class="resources-grid">
+            {% for url in week.resources %}
+            {% set is_video = 'youtube.com' in url or 'youtu.be' in url or 'vimeo.com' in url %}
+            <a href="{{ url }}" target="_blank" rel="noopener" class="resource-link glass-card-hover p-4 mb-3 text-decoration-none lift-hover" data-type="{% if is_video %}video{% else %}article{% endif %}">
+              <div class="resource-header d-flex align-items-start gap-3">
+                <div class="resource-icon fs-2">
+                  {% if is_video %}
+                  <i class="fab fa-youtube text-danger"></i>
+                  {% else %}
+                  <i class="fas fa-file-alt text-primary"></i>
+                  {% endif %}
+                </div>
+                <div class="flex-grow-1">
+                  <div class="resource-title fw-semibold mb-1 text-truncate">{{ url }}</div>
+                  <span class="resource-type badge rounded-pill">
+                    {% if is_video %}🎥 Video{% else %}📄 Article{% endif %}
+                  </span>
+                </div>
+              </div>
+            </a>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+      
+      <!-- Quick Actions -->
+      <div class="week-footer p-4 pt-0 border-top" style="border-top: 1px solid var(--glass-border);">
+        <div class="d-flex flex-wrap gap-2">
+          <button class="btn btn-outline-primary btn-sm rounded-pill clone-week-btn px-3" data-week="{{ week.week }}" data-topic="{{ week.topic }}">
+            <i class="fas fa-plus me-1"></i>Import Week
+          </button>
+          <a href="{{ url_for('print_roadmap', roadmap_id=roadmap_id) }}#week-{{ week.week }}" target="_blank" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+            <i class="fas fa-print me-1"></i>Print
+          </a>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
   </div>
-{% endfor %}
+</div>
+
+<!-- Share Footer -->
+<div class="share-footer glass-card p-4 mt-6 text-center">
+  <div class="row align-items-center">
+    <div class="col-md-6">
+      <h6 class="mb-2">
+        <i class="fas fa-users text-primary me-2"></i>Like this roadmap?
+      </h6>
+      <p class="text-muted mb-0 small">
+        Import it to your dashboard and start learning today!
+      </p>
+    </div>
+    <div class="col-md-6">
+      <div class="action-buttons d-flex justify-content-center flex-wrap gap-2">
+        <a href="{{ url_for('generate') }}" class="btn btn-primary rounded-pill px-4">
+          <i class="fas fa-magic me-2"></i>Create Similar
+        </a>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-primary rounded-pill px-4">
+          <i class="fas fa-tachometer-alt me-2"></i>My Dashboard
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
 {% endif %}
+{% endblock %}
+
+{% block scripts %}
+<style>
+.shared-hero {
+  border-radius: 32px;
+  backdrop-filter: blur(40px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-xl);
+  position: relative;
+}
+
+.hero-decoration {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(79,70,229,0.1) 0%, transparent 70%);
+  border-radius: 50%;
+}
+
+.share-icon {
+  background: linear-gradient(135deg, var(--primary-gradient));
+  color: white;
+  width: 60px;
+  height: 60px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.role-badge {
+  font-size: 0.9rem;
+  backdrop-filter: blur(20px);
+}
+
+.share-stats {
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  border: 1px solid var(--glass-border);
+}
+
+.stat-circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.1rem;
+}
+
+.stat-number {
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.weeks-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+  gap: 2rem;
+}
+
+.week-card {
+  border-radius: 24px;
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  height: fit-content;
+}
+
+.week-header {
+  background: linear-gradient(135deg, var(--primary-gradient));
+  color: white;
+  padding: 2rem;
+  position: relative;
+}
+
+.week-header::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  background: linear-gradient(180deg, #10b981, #34d399);
+}
+
+.week-number-badge {
+  background: rgba(255,255,255,0.2);
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  backdrop-filter: blur(10px);
+}
+
+.section-header {
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.section-count {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.resources-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.resource-link {
+  color: inherit;
+  transition: all 0.3s ease;
+}
+
+.resource-link:hover {
+  color: var(--primary) !important;
+  transform: translateY(-2px);
+}
+
+.resource-icon {
+  color: var(--primary);
+  opacity: 0.8;
+}
+
+.lift-hover:hover {
+  transform: translateY(-8px);
+  box-shadow: var(--shadow-xl);
+}
+
+.roadmap-progress-bar {
+  display: flex;
+  gap: 0.5rem;
+  height: 12px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.2);
+  padding: 3px;
+  overflow: hidden;
+}
+
+.week-progress-segment {
+  flex: 1;
+  height: 100%;
+  background: linear-gradient(90deg, #e2e8f0, #cbd5e1);
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.week-progress-segment:hover {
+  background: linear-gradient(90deg, var(--primary), var(--secondary));
+  transform: scaleY(1.2);
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(40px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in-up {
+  animation: fade-in-up 0.8s ease-out forwards;
+}
+
+@media (max-width: 768px) {
+  .weeks-grid { grid-template-columns: 1fr; }
+  .shared-hero { margin: 0 -1rem 2rem -1rem; border-radius: 0; }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Staggered animation for week cards
+  document.querySelectorAll('.week-card').forEach((card, index) => {
+    card.style.opacity = '0';
+    card.style.transform = 'translateY(30px)';
+    setTimeout(() => {
+      card.style.transition = 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
+      card.style.opacity = '1';
+      card.style.transform = 'translateY(0)';
+    }, index * 150);
+  });
+
+  // Clone shared roadmap
+  document.querySelectorAll('.clone-shared-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const roadmapId = this.dataset.roadmapId;
+      if (!roadmapId) {
+        showToast('No roadmap ID available', 'error');
+        return;
+      }
+      
+      this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Importing...';
+      this.disabled = true;
+      
+      fetch('/api/clone_shared', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shared_roadmap_id: roadmapId })
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.ok && data.roadmap_id) {
+          showToast('✅ Roadmap imported to your dashboard!', 'success');
+          setTimeout(() => {
+            window.location.href = `/roadmap/${data.roadmap_id}`;
+          }, 1500);
+        } else {
+          showToast('❌ Import failed. Try again.', 'error');
+        }
+      })
+      .catch(() => {
+        showToast('❌ Network error', 'error');
+      })
+      .finally(() => {
+        this.disabled = false;
+        this.innerHTML = '<i class="fas fa-clone me-2"></i>Import to My Paths';
+      });
+    });
+  });
+
+  // Clone individual week
+  document.querySelectorAll('.clone-week-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const week = this.dataset.week;
+      const topic = this.dataset.topic;
+      showToast(`Week ${week} "${topic}" copied to clipboard! 📋`, 'success');
+      // Copy topic to clipboard for manual import
+      navigator.clipboard.writeText(`${topic} (Week ${week})`);
+    });
+  });
+
+  // Simple toast notifications
+  function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = `toast-notification position-fixed top-0 end-0 m-4 p-3 rounded-3 shadow-lg ${type === 'error' ? 'bg-danger' : 'bg-success'}`;
+    toast.style.cssText = `
+      z-index: 9999;
+      color: white;
+      max-width: 350px;
+      animation: slideInRight 0.4s ease, fadeOut 0.4s ease 2.6s forwards;
+    `;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => toast.remove(), 3000);
+  }
+
+  // Add CSS for animations
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes slideInRight {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes fadeOut {
+      to { opacity: 0; transform: translateX(20px); }
+    }
+  `;
+  document.head.appendChild(style);
+
+  // Progress bar hover effects
+  document.querySelectorAll('.week-progress-segment').forEach(segment => {
+    segment.addEventListener('mouseenter', function() {
+      this.style.transform = 'scaleY(1.3)';
+    });
+    segment.addEventListener('mouseleave', function() {
+      this.style.transform = 'scaleY(1)';
+    });
+  });
+});
+</script>
 {% endblock %}
