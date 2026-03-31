@@ -54,64 +54,61 @@
             </div>
 
             <!-- Email Field -->
-            <div class="form-floating mb-4 input-group-lg">
-              <input type="email" 
-                     class="form-control auth-input shadow-none border-0 ps-5 bg-transparent" 
-                     id="email" 
-                     name="email" 
-                     required 
-                     placeholder="you@example.com">
-              <label for="email" class="input-floating-label">
+            <div class="auth-field mb-4">
+              <label for="email" class="auth-label">
                 <i class="fas fa-envelope me-2"></i>Email Address
               </label>
-              <div class="input-icon-left">
-                <i class="fas fa-at text-muted"></i>
+              <div class="auth-input-wrapper">
+                <input type="email" 
+                       class="form-control auth-input shadow-none border-0 bg-transparent" 
+                       id="email" 
+                       name="email" 
+                       required 
+                       placeholder="you@example.com">
+                <div class="invalid-feedback">Please enter a valid email</div>
               </div>
-              <div class="invalid-feedback">Please enter a valid email</div>
-              <div id="username-suggestion" class="form-text mt-2 pt-2 border-top" style="display:none; padding-top: 0.75rem;">
+              <div id="username-suggestion" class="form-text mt-2" style="display:none;">
                 💡 Suggested username: <strong><a href="#" id="username-suggestion-link"></a></strong>
               </div>
             </div>
 
             <!-- Username Field -->
-            <div class="form-floating mb-4 input-group-lg">
-              <input type="text" 
-                     class="form-control auth-input shadow-none border-0 ps-5 bg-transparent" 
-                     id="username" 
-                     name="username" 
-                     required 
-                     autofocus 
-                     minlength="3"
-                     placeholder="Choose username">
-              <label for="username" class="input-floating-label">
+            <div class="auth-field mb-4">
+              <label for="username" class="auth-label">
                 <i class="fas fa-user me-2"></i>Username
               </label>
-              <div class="input-icon-left">
-                <i class="fas fa-user text-muted"></i>
+              <div class="auth-input-wrapper">
+                <input type="text" 
+                       class="form-control auth-input shadow-none border-0 bg-transparent" 
+                       id="username" 
+                       name="username" 
+                       required 
+                       autofocus 
+                       minlength="3"
+                       placeholder="Choose a username">
+                <div id="username-feedback" class="form-text mt-1"></div>
+                <div class="invalid-feedback">Username must be 3+ characters</div>
               </div>
-              <div id="username-feedback" class="form-text mt-2 pt-2 border-top"></div>
-              <div class="invalid-feedback">Username must be 3+ characters</div>
             </div>
 
             <!-- Password Field -->
-            <div class="form-floating mb-5 input-group-lg">
-              <input type="password" 
-                     class="form-control auth-input shadow-none border-0 ps-5 bg-transparent" 
-                     id="password" 
-                     name="password" 
-                     required 
-                     minlength="6"
-                     placeholder="Secure password">
-              <label for="password" class="input-floating-label">
+            <div class="auth-field mb-5">
+              <label for="password" class="auth-label">
                 <i class="fas fa-lock me-2"></i>Password
               </label>
-              <div class="input-icon-left">
-                <i class="fas fa-lock text-muted"></i>
+              <div class="auth-input-wrapper position-relative">
+                <input type="password" 
+                       class="form-control auth-input shadow-none border-0 bg-transparent pe-5" 
+                       id="password" 
+                       name="password" 
+                       required 
+                       minlength="6"
+                       placeholder="Create a secure password">
+                <div class="input-icon-right">
+                  <i class="fas fa-eye-slash toggle-password" data-target="password"></i>
+                </div>
+                <div class="invalid-feedback">Password must be 6+ characters</div>
               </div>
-              <div class="input-icon-right">
-                <i class="fas fa-eye-slash toggle-password" data-target="password"></i>
-              </div>
-              <div class="invalid-feedback">Password must be 6+ characters</div>
             </div>
 
             <!-- Password Strength -->
@@ -250,19 +247,43 @@
     background: var(--success-gradient);
   }
 
-  .input-floating-label {
-    color: var(--text-secondary) !important; font-weight: 500 !important;
-    padding: 1rem 1rem 0.5rem 3rem !important; transform-origin: left top;
-    transition: all 0.3s ease;
+  .auth-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
   }
 
-  .auth-input:focus ~ .input-floating-label,
-  .auth-input:not(:placeholder-shown) ~ .input-floating-label {
-    transform: scale(0.85) translateY(-1.25rem) translateX(2.5rem);
-    color: #10b981 !important;
+  .auth-label {
+    color: #10b981;
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 0;
+    display: flex;
+    align-items: center;
   }
 
-  .input-icon-left { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); z-index: 3; pointer-events: none; font-size: 1.1rem; }
+  .auth-input-wrapper {
+    position: relative;
+  }
+
+  .auth-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    font-size: 1rem;
+    color: var(--text-primary);
+  }
+
+  .auth-input::placeholder {
+    color: rgba(255,255,255,0.35);
+    font-size: 0.95rem;
+  }
+
+  .auth-input:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.4) !important;
+  }
+
   .input-icon-right { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); z-index: 3; cursor: pointer; font-size: 1rem; transition: all 0.3s ease; }
   .input-icon-right:hover { color: #10b981 !important; transform: translateY(-50%) scale(1.1); }
 

@@ -54,41 +54,39 @@
             </div>
 
             <!-- Username Field -->
-            <div class="form-floating mb-4 input-group-lg">
-              <input type="text" 
-                     class="form-control auth-input shadow-none border-0 ps-5 bg-transparent" 
-                     id="username" 
-                     name="username" 
-                     required 
-                     autofocus 
-                     placeholder="Username or email">
-              <label for="username" class="input-floating-label">
+            <div class="auth-field mb-4">
+              <label for="username" class="auth-label">
                 <i class="fas fa-user me-2"></i>Username or Email
               </label>
-              <div class="input-icon-left">
-                <i class="fas fa-at text-muted"></i>
+              <div class="auth-input-wrapper">
+                <input type="text" 
+                       class="form-control auth-input shadow-none border-0 bg-transparent" 
+                       id="username" 
+                       name="username" 
+                       required 
+                       autofocus 
+                       placeholder="Enter your username or email">
+                <div class="invalid-feedback">Please enter your username or email</div>
               </div>
-              <div class="invalid-feedback">Please enter your username or email</div>
             </div>
 
             <!-- Password Field -->
-            <div class="form-floating mb-4 input-group-lg">
-              <input type="password" 
-                     class="form-control auth-input shadow-none border-0 ps-5 bg-transparent" 
-                     id="password" 
-                     name="password" 
-                     required 
-                     placeholder="Password">
-              <label for="password" class="input-floating-label">
+            <div class="auth-field mb-4">
+              <label for="password" class="auth-label">
                 <i class="fas fa-lock me-2"></i>Password
               </label>
-              <div class="input-icon-left">
-                <i class="fas fa-lock text-muted"></i>
+              <div class="auth-input-wrapper position-relative">
+                <input type="password" 
+                       class="form-control auth-input shadow-none border-0 bg-transparent pe-5" 
+                       id="password" 
+                       name="password" 
+                       required 
+                       placeholder="Enter your password">
+                <div class="input-icon-right">
+                  <i class="fas fa-eye-slash toggle-password" data-target="password"></i>
+                </div>
+                <div class="invalid-feedback">Please enter your password</div>
               </div>
-              <div class="input-icon-right">
-                <i class="fas fa-eye-slash toggle-password" data-target="password"></i>
-              </div>
-              <div class="invalid-feedback">Please enter your password</div>
             </div>
 
             <!-- Remember Me & Forgot Password -->
@@ -269,32 +267,41 @@
     background: var(--primary-gradient);
   }
 
-  .form-floating {
+  .auth-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .auth-label {
+    color: #667eea;
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 0;
+    display: flex;
+    align-items: center;
+  }
+
+  .auth-input-wrapper {
     position: relative;
   }
 
-  .input-floating-label {
-    color: var(--text-secondary) !important;
-    font-weight: 500 !important;
-    padding: 1rem 1rem 0.5rem 3rem !important;
-    transform-origin: left top;
-    transition: all 0.3s ease;
+  .auth-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    font-size: 1rem;
+    color: var(--text-primary);
   }
 
-  .auth-input:focus ~ .input-floating-label,
-  .auth-input:not(:placeholder-shown) ~ .input-floating-label {
-    transform: scale(0.85) translateY(-1.25rem) translateX(2.5rem);
-    color: #667eea !important;
+  .auth-input::placeholder {
+    color: rgba(255,255,255,0.35);
+    font-size: 0.95rem;
   }
 
-  .input-icon-left {
-    position: absolute;
-    left: 1rem;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 3;
-    pointer-events: none;
-    font-size: 1.1rem;
+  .auth-input:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.4) !important;
   }
 
   .input-icon-right {
@@ -305,11 +312,12 @@
     z-index: 3;
     cursor: pointer;
     font-size: 1rem;
+    color: rgba(255,255,255,0.5);
     transition: all 0.3s ease;
   }
 
   .input-icon-right:hover {
-    color: #667eea !important;
+    color: #667eea;
     transform: translateY(-50%) scale(1.1);
   }
 
@@ -443,26 +451,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
-  // Input focus effects
-  document.querySelectorAll('.auth-input').forEach(input => {
-    input.addEventListener('focus', function() {
-      this.parentElement.parentElement.classList.add('input-focused');
-    });
-    input.addEventListener('blur', function() {
-      this.parentElement.parentElement.classList.remove('input-focused');
-    });
-  });
 
-  // Floating label animation
-  document.querySelectorAll('.auth-input').forEach(input => {
-    input.addEventListener('input', function() {
-      if (this.value) {
-        this.parentElement.classList.add('has-value');
-      } else {
-        this.parentElement.classList.remove('has-value');
-      }
-    });
-  });
 });
 </script>
 {% endblock %}
