@@ -2,7 +2,7 @@
 {% block title %}🚀 {{ path_name or 'My Learning Roadmap' }}{% endblock %}
 {% block content %}
 <!-- Hero Roadmap Header -->
-<div class="roadmap-hero glass-card p-5 mb-5 position-relative overflow-hidden fade-in-up">
+<div class="roadmap-hero glass-card p-4 mb-4 position-relative overflow-hidden fade-in-up">
   <div class="hero-bg-animation"></div>
   <div class="row align-items-center">
     <div class="col-lg-8">
@@ -63,7 +63,7 @@
 
 <!-- Goal Planner -->
 {% if roadmap_id %}
-<div class="goal-planner glass-card p-4 mb-5">
+<div class="goal-planner glass-card p-4 mb-4">
   <h5 class="mb-4">
     <i class="fas fa-target text-primary me-2"></i>Goal Settings
   </h5>
@@ -87,7 +87,7 @@
 
 <!-- Smart Planner -->
 {% if roadmap %}
-<div class="smart-planner glass-card p-5 mb-5">
+<div class="smart-planner glass-card p-4 mb-4">
   <div class="planner-header d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
     <h5 class="mb-0">
       <i class="fas fa-sitemap text-success me-2"></i>Smart Task Planner
@@ -165,45 +165,44 @@
 {% if roadmap %}
 <div class="roadmap-weeks-container">
   {% for week in roadmap %}
-  <div class="roadmap-week glass-card mb-5 {% if week.topic in completed_set %}completed-week{% endif %}" data-week="{{ loop.index0 }}">
-    <div class="week-header position-relative p-4">
-      <div class="week-number-badge d-inline-flex align-items-center gap-2 mb-2">
-        <div class="week-number fs-4 fw-bold">Week {{ week.week }}</div>
-        {% if week.topic in completed_set %}
-        <span class="badge bg-success completed-badge">
-          <i class="fas fa-check-circle me-1"></i>Completed
-        </span>
-        {% endif %}
+  <div class="roadmap-week glass-card mb-4 {% if week.topic in completed_set %}completed-week{% endif %}" data-week="{{ loop.index0 }}">
+    <div class="week-header p-4">
+      <div class="week-header-top d-flex align-items-center justify-content-between gap-3 mb-3">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <div class="week-number-badge">Week {{ week.week }}</div>
+          {% if week.topic in completed_set %}
+          <span class="badge bg-success">
+            <i class="fas fa-check-circle me-1"></i>Completed
+          </span>
+          {% endif %}
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          {% if roadmap_id %}
+          <button class="btn btn-sm btn-outline-light btn-week-up" data-roadmap-id="{{ roadmap_id }}" data-index="{{ loop.index0 }}" title="Move up">
+            <i class="fas fa-chevron-up"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-light btn-week-down" data-roadmap-id="{{ roadmap_id }}" data-index="{{ loop.index0 }}" title="Move down">
+            <i class="fas fa-chevron-down"></i>
+          </button>
+          {% endif %}
+          {% if not week.topic in completed_set and roadmap_id %}
+          <form method="post" action="{{ url_for('mark_completed') }}" class="d-inline m-0">
+            <input type="hidden" name="topic" value="{{ week.topic }}">
+            <input type="hidden" name="roadmap_id" value="{{ roadmap_id }}">
+            <button type="submit" class="btn btn-success btn-sm">
+              <i class="fas fa-check me-1"></i>Mark Complete
+            </button>
+          </form>
+          {% endif %}
+        </div>
       </div>
-      
-      {% if not week.topic in completed_set and roadmap_id %}
-      <form method="post" action="{{ url_for('mark_completed') }}" class="d-inline position-absolute top-4 end-4">
-        <input type="hidden" name="topic" value="{{ week.topic }}">
-        {% if roadmap_id %}<input type="hidden" name="roadmap_id" value="{{ roadmap_id }}">{% endif %}
-        <button type="submit" class="btn btn-success btn-sm week-complete-btn">
-          <i class="fas fa-check me-1"></i>Mark Complete
-        </button>
-      </form>
-      {% endif %}
-      
-      {% if roadmap_id %}
-      <div class="week-controls position-absolute top-4 start-4">
-        <button class="btn btn-sm btn-outline-light btn-week-up" data-roadmap-id="{{ roadmap_id }}" data-index="{{ loop.index0 }}" title="Move up">
-          <i class="fas fa-chevron-up"></i>
-        </button>
-        <button class="btn btn-sm btn-outline-light btn-week-down" data-roadmap-id="{{ roadmap_id }}" data-index="{{ loop.index0 }}" title="Move down">
-          <i class="fas fa-chevron-down"></i>
-        </button>
-      </div>
-      {% endif %}
-      
       <h3 class="week-title mb-0 fw-bold">{{ week.topic }}</h3>
     </div>
 
-    <div class="week-content p-5">
+    <div class="week-content p-4">
       <!-- Quick Actions -->
       {% if roadmap_id %}
-      <div class="quick-actions mb-4 d-flex flex-wrap gap-2">
+      <div class="quick-actions mb-3 d-flex flex-wrap gap-2">
         <button class="btn btn-outline-primary btn-sm weekly-focus-btn rounded-pill px-4" data-roadmap-id="{{ roadmap_id }}" data-topic="{{ week.topic }}">
           <i class="fas fa-bullseye me-2"></i>This Week
         </button>
@@ -221,7 +220,7 @@
 
       <!-- Milestone Notes -->
       {% if roadmap_id %}
-      <div class="milestone-section mb-4">
+      <div class="milestone-section mb-3">
         <label class="form-label fw-semibold mb-2 d-flex align-items-center gap-2">
           <i class="fas fa-sticky-note text-warning"></i>Milestone Notes
         </label>
@@ -232,7 +231,7 @@
 
       <!-- Tags -->
       {% if roadmap_id %}
-      <div class="tags-section mb-4">
+      <div class="tags-section mb-3">
         <label class="form-label fw-semibold mb-2">
           <i class="fas fa-tags text-info"></i>Tags
         </label>
@@ -247,7 +246,7 @@
       {% endif %}
 
       <!-- Tasks -->
-      <div class="tasks-section mb-5">
+      <div class="tasks-section mb-4">
         <h6 class="section-title">
           <i class="fas fa-tasks text-success me-2"></i>Tasks
         </h6>
@@ -386,33 +385,23 @@
 }
 
 .week-number-badge {
-  background: rgba(255,255,255,0.1);
-  padding: 0.75rem 1.5rem;
+  background: rgba(255,255,255,0.15);
+  padding: 0.35rem 1rem;
   border-radius: 50px;
-  backdrop-filter: blur(20px);
+  font-size: 1rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
 }
 
 .week-header {
-  background: linear-gradient(135deg, var(--primary-gradient));
-  border-radius: 24px 24px 0 0;
-  color: white;
-  overflow: hidden;
+  background: linear-gradient(135deg, rgba(102,126,234,0.25), rgba(118,75,162,0.25));
+  border-radius: 20px 20px 0 0;
+  border-bottom: 1px solid var(--glass-border);
 }
 
 .week-header::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 6px;
-  background: linear-gradient(180deg, #10b981, #34d399);
-}
-
-.week-controls {
-  background: rgba(255,255,255,0.2);
-  border-radius: 12px;
-  padding: 0.25rem;
+  display: none;
 }
 
 .planner-column {

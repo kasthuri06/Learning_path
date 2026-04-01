@@ -48,6 +48,14 @@ GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
 GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
 GOOGLE_DISCOVERY_URL = "https://accounts.google.com/.well-known/openid-configuration"
 
+# Load .env if present
+_env_path = APP_DIR / ".env"
+if _env_path.exists():
+    for _line in _env_path.read_text().splitlines():
+        if "=" in _line and not _line.startswith("#"):
+            _k, _v = _line.split("=", 1)
+            os.environ.setdefault(_k.strip(), _v.strip())
+
 app = Flask(__name__, template_folder=str(APP_DIR / "templates"), static_folder=str(APP_DIR / "static"))
 app.secret_key = SECRET_KEY
 app.config["DATABASE"] = str(DATABASE)
@@ -988,10 +996,11 @@ def generate():
     domain = request.form.get("domain", "AI").strip()
     current_level = request.form.get("current_level", "Beginner").strip()
     target_role = (request.form.get("target_role") or "").strip() or "Learner"
+    learning_style = (request.form.get("learning_style") or "balanced").strip().lower()
     path_name = (request.form.get("path_name") or "").strip() or ("%s – %s" % (domain, target_role))
     weekly_hours = request.form.get("weekly_study_hours", "5")
     try:
-        weekly_study_hours = max(1, min(20, int(weekly_hours)))
+        weekly_study_hours = max(1, min(40, int(weekly_hours)))
     except ValueError:
         weekly_study_hours = 5
     goal_date = (request.form.get("goal_date") or "").strip()
@@ -1009,6 +1018,9 @@ def generate():
             current_level=current_level,
             weekly_study_hours=weekly_study_hours,
             known_skills=known_skills,
+            target_role=target_role,
+            learning_style=learning_style,
+            goal_date=goal_date,
             knowledge_base_path=str(APP_DIR / "knowledge_base.json"),
             resources_path=str(APP_DIR / "resources.json"),
         )

@@ -1,17 +1,42 @@
 """
-Rule-based chatbot for the AI Learning Platform.
-Modes: general (Q&A), path_creation (conversational path generation), research (skills/salaries/roles).
-No external API; uses knowledge_base, resources, and static data.
+Groq-powered chatbot for the AI Learning Platform.
+Modes: general, path_creation, research.
+Falls back to rule-based responses if Groq is unavailable.
 """
 
 import json
 import re
 from pathlib import Path
 
-from generator import generate_roadmap, load_json
+from generator import _groq_chat, load_json
 
 APP_DIR = Path(__file__).resolve().parent
 DATA_DIR = APP_DIR / "data"
+
+SYSTEM_GENERAL = """You are an expert AI learning assistant for an AI Learning Platform.
+Help users with:
+- Learning path advice and topic explanations
+- Study strategies and resources
+- AI/ML/Data Science/Web Dev concepts
+- Career guidance in tech
+
+Be concise, friendly, and practical. Use markdown for formatting when helpful.
+Keep responses under 200 words unless a detailed explanation is needed."""
+
+SYSTEM_RESEARCH = """You are a tech career research expert specializing in 2024-2025 AI/ML job market.
+Provide accurate information about:
+- Emerging AI roles and their responsibilities
+- Required skills and tech stacks
+- Realistic salary ranges (USD)
+- Career progression paths
+- In-demand certifications
+
+Be specific with numbers and current trends. Keep responses concise and actionable."""
+
+SYSTEM_PATH = """You are a learning path advisor helping users build personalized study roadmaps.
+Guide users through collecting: domain, current level, target role, known skills.
+Once you have all info, summarize the plan and tell them to use the Generate Path page.
+Be conversational and encouraging. Ask one question at a time."""
 
 
 def _load_emerging_roles() -> list:
@@ -22,115 +47,97 @@ def _load_emerging_roles() -> list:
         return json.load(f)
 
 
-def _load_kb_resources():
-    try:
-        kb = load_json("knowledge_base.json", base_dir=APP_DIR)
-        res = load_json("resources.json", base_dir=APP_DIR)
-        return kb, res
-    except Exception:
-        return {}, {}
+def _groq_reply(system: str, message: str, history: list = None) -> str:
+    messages = [{"role": "system", "content": system}]
+    if history:
+        messages.extend(history[-6:])  # last 3 exchanges for context
+    messages.append({"role": "user", "content": message})
+    return _groq_chat(messages, temperature=0.6)
 
 
-def _general_reply(message: str) -> str:
-    m = message.lower().strip()
-    if not m:
-        return "Ask me anything about learning paths, topics, or resources."
-    if "hello" in m or "hi " in m or m == "hi":
-        return "Hi! I can help with learning paths, path creation, or research on skills and roles. What would you like to do?"
+# ── Fallback rule-based replies ──────────────────────────────────────────────
+
+def _fallback_general(message: str) -> str:
+    m = message.lower()
+    if any(w in m for w in ["hello", "hi", "hey"]):
+        return "Hi! I can help with learning paths, AI concepts, and career advice. What would you like to know?"
     if "help" in m:
-        return "Use **General Chat** for questions, **Path Creation** to build a learning path by conversation, or **Research** to explore 2025 AI roles, skills, and salary ranges."
-    if "path" in m or "roadmap" in m or "learn" in m:
-        return "Switch to **Path Creation** mode and tell me your domain (e.g. AI, Data Science), your level, and target role. I'll build a custom roadmap for you."
-    if "resource" in m or "link" in m or "video" in m:
-        return "After you generate a path, each topic on your roadmap includes curated resources (videos, docs). You can track them with checkboxes."
-    return "I'm a rule-based assistant. For detailed path generation use Path Creation; for roles and salaries use Research."
+        return "Use **General** for questions, **Path Creation** to plan a roadmap, or **Research** for roles and salaries."
+    return "I'm here to help with your learning journey. Ask me about topics, paths, or career advice."
 
 
-def _research_reply(message: str) -> str:
+def _fallback_research(message: str) -> str:
     roles = _load_emerging_roles()
-    m = message.lower().strip()
-    if not m:
-        return "Ask about a role (e.g. 'ML Engineer'), 'salaries', 'skills', or 'list roles' for 2025 emerging AI roles."
-    if "list" in m or ("role" in m and "all" in m) or "every" in m:
-        lines = [f"• **{r['role']}** — {r['salary_range']}" for r in roles]
-        return "**2025 emerging AI roles:**\n\n" + "\n".join(lines)
-    if "salar" in m or "pay" in m or "salary" in m:
-        lines = [f"• {r['role']}: {r['salary_range']}" for r in roles]
-        return "**Salary ranges (typical):**\n\n" + "\n".join(lines)
+    m = message.lower()
+    if "list" in m or "all" in m:
+        return "**2025 AI Roles:**\n" + "\n".join(f"• **{r['role']}** — {r['salary_range']}" for r in roles)
     for r in roles:
-        if r["role"].lower() in m or m in r["role"].lower():
-            return f"**{r['role']}**\nSkills: {r['skills']}\nSalary range: {r['salary_range']}"
-    if "skill" in m:
-        return "Roles and their key skills are in the collapsible **Skills database** on the Generate page, or ask me for a specific role by name in Research mode."
-    return "Try: 'ML Engineer', 'Prompt Engineer', 'salaries', or 'list roles'."
+        if r["role"].lower() in m:
+            return f"**{r['role']}**\nSkills: {r['skills']}\nSalary: {r['salary_range']}"
+    return "Ask about a specific role (e.g. 'ML Engineer'), 'salaries', or 'list roles'."
 
 
-def _path_creation_reply(message: str, context: dict) -> tuple:
-    m = message.lower().strip()
-    domain_set = {"ai", "data science", "web development", "cloud computing"}
-    level_set = {"beginner", "intermediate", "advanced"}
-
-    if not context:
-        context = {}
-
-    domain = context.get("domain")
-    level = context.get("level")
-    target_role = context.get("target_role")
-    known_skills = context.get("known_skills") or []
-
-    if domain and level and target_role:
-        try:
-            roadmap = generate_roadmap(
-                domain=domain,
-                current_level=level.capitalize(),
-                weekly_study_hours=context.get("weekly_hours", 5),
-                known_skills=known_skills,
-                knowledge_base_path=str(APP_DIR / "knowledge_base.json"),
-                resources_path=str(APP_DIR / "resources.json"),
-                base_dir=APP_DIR,
-            )
-            topics = [w["topic"] for w in roadmap]
-            summary = "Your path is ready! Topics: " + ", ".join(topics[:5])
-            if len(topics) > 5:
-                summary += f" … and {len(topics) - 5} more."
-            summary += " Go to **Generate Path** and click Generate to save it to your dashboard."
-            return summary, {"roadmap_preview": roadmap}
-        except Exception as e:
-            return f"I couldn't build the path: {e}. Try again with domain, level, and role.", context
-
-    if not domain:
-        for d in domain_set:
+def _fallback_path(message: str, context: dict) -> tuple:
+    m = message.lower()
+    if not context.get("domain"):
+        for d in ["ai", "data science", "web development", "cloud computing"]:
             if d in m:
                 context["domain"] = d.title()
-                return f"Got it, **{context['domain']}**. What's your current level? (Beginner, Intermediate, Advanced)", context
+                return f"Got it — **{context['domain']}**. What's your current level? (Beginner / Intermediate / Advanced)", context
         return "What **domain** do you want to learn? (AI, Data Science, Web Development, Cloud Computing)", context
-
-    if not level:
-        for l in level_set:
+    if not context.get("level"):
+        for l in ["beginner", "intermediate", "advanced"]:
             if l in m:
                 context["level"] = l
-                return f"**{l.capitalize()}** — great. What's your **target role**? (e.g. ML Engineer, Data Scientist)", context
-        return "What's your **current level**? (Beginner, Intermediate, Advanced)", context
+                return f"**{l.capitalize()}** noted. What's your **target role**?", context
+        return "What's your current level? (Beginner / Intermediate / Advanced)", context
+    if not context.get("target_role"):
+        context["target_role"] = message.strip() or "Learner"
+        return f"Target role: **{context['target_role']}**. Any known skills to skip? (or say 'none')", context
+    context["known_skills"] = [s.strip() for s in re.split(r"[,;]", message) if s.strip() and message.lower() != "none"]
+    return (f"Ready! Head to **Generate Path** and use:\n- Domain: {context['domain']}\n"
+            f"- Level: {context['level']}\n- Role: {context['target_role']}\n"
+            f"to create your personalized roadmap."), context
 
-    if not target_role:
-        role = message.strip() or "Learner"
-        context["target_role"] = role
-        context["weekly_hours"] = 5
-        return f"Target role **{role}** saved. Any **known skills** to skip? (comma-separated, or say 'none'). Then I'll generate your path.", context
 
-    if "none" not in m and "no " not in m and "skip" not in m and m:
-        context["known_skills"] = [s.strip() for s in re.split(r"[,;]", message) if s.strip()]
-
-    return _path_creation_reply("generate", context)
-
+# ── Main handler ─────────────────────────────────────────────────────────────
 
 def handle_chat(message: str, mode: str, context: dict = None) -> dict:
     context = context or {}
+    history = context.get("history", [])
+
     if mode == "general":
-        return {"reply": _general_reply(message), "context": {}}
+        try:
+            reply = _groq_reply(SYSTEM_GENERAL, message, history)
+        except Exception:
+            reply = _fallback_general(message)
+        new_history = history + [{"role": "user", "content": message}, {"role": "assistant", "content": reply}]
+        return {"reply": reply, "context": {"history": new_history[-10:]}}
+
     if mode == "research":
-        return {"reply": _research_reply(message), "context": {}}
+        # Enrich with local role data as context
+        roles = _load_emerging_roles()
+        roles_ctx = json.dumps(roles[:10], ensure_ascii=False) if roles else ""
+        system = SYSTEM_RESEARCH + (f"\n\nAvailable role data:\n{roles_ctx}" if roles_ctx else "")
+        try:
+            reply = _groq_reply(system, message, history)
+        except Exception:
+            reply = _fallback_research(message)
+        new_history = history + [{"role": "user", "content": message}, {"role": "assistant", "content": reply}]
+        return {"reply": reply, "context": {"history": new_history[-10:]}}
+
     if mode == "path_creation":
-        reply, new_ctx = _path_creation_reply(message, context)
-        return {"reply": reply, "context": new_ctx}
-    return {"reply": "Unknown mode. Use general, path_creation, or research.", "context": {}}
+        try:
+            ctx_summary = ""
+            if context.get("domain"):
+                ctx_summary = f"Collected so far — Domain: {context.get('domain')}, Level: {context.get('level','?')}, Role: {context.get('target_role','?')}"
+            system = SYSTEM_PATH + (f"\n\n{ctx_summary}" if ctx_summary else "")
+            reply = _groq_reply(system, message, history)
+        except Exception:
+            reply, context = _fallback_path(message, context)
+            return {"reply": reply, "context": context}
+        new_history = history + [{"role": "user", "content": message}, {"role": "assistant", "content": reply}]
+        context["history"] = new_history[-10:]
+        return {"reply": reply, "context": context}
+
+    return {"reply": "Unknown mode.", "context": {}}

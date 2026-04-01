@@ -1,554 +1,378 @@
 {% extends "base.html" %}
 {% block title %}Generate Learning Path - AI Learning Platform{% endblock %}
 {% block content %}
-<!-- Hero Section -->
-<div class="generate-hero mb-5 fade-in">
-  <div class="container">
-    <div class="row align-items-center"></div>
-      <div class="col-lg-8">
-        <h1 class="display-4 fw-bold mb-3" style="background: var(--primary-gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
-          <i class="fas fa-sparkles me-3"></i>AI Path Generator
-        </h1>
-        <p class="lead mb-0">Create your perfect learning roadmap in seconds. Powered by advanced AI models.</p>
-      </div>
-      <div class="col-lg-4 text-center text-lg-end">
-        <div class="ai-badge glass-card d-inline-flex align-items-center gap-2 p-3">
-          <div class="ai-icon">
-            <i class="fas fa-robot text-primary fs-3"></i>
-          </div>
-          <div>
-            <small class="text-muted d-block">AI Powered</small>
-            <strong>Next-Gen LLM</strong>
-          </div>
-        </div>
-      </div>
+
+<!-- Hero -->
+<div class="gen-hero mb-4">
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+    <div>
+      <h1 class="gen-title mb-1">
+        <i class="fas fa-sparkles me-2"></i>AI Path Generator
+      </h1>
+      <p class="text-muted mb-0">Create your personalized learning roadmap powered by Groq AI.</p>
+    </div>
+    <div class="gen-ai-badge">
+      <i class="fas fa-robot text-primary me-2"></i>
+      <span class="fw-semibold">Groq LLM</span>
+      <span class="gen-dot"></span>
     </div>
   </div>
 </div>
 
-<!-- Error Alert -->
 {% if error %}
-<div class="alert glass-card border-0 alert-danger mb-5 shadow-lg animate-pulse" role="alert">
-  <div class="d-flex align-items-center">
-    <i class="fas fa-exclamation-triangle fs-3 me-3 text-danger opacity-75"></i>
-    <div>
-      <strong>Generation Error</strong>
-      <div class="small mt-1">{{ error }}</div>
-    </div>
-  </div>
+<div class="gen-alert mb-4">
+  <i class="fas fa-exclamation-triangle text-danger me-2"></i>
+  <div><strong>Error:</strong> {{ error }}</div>
 </div>
 {% endif %}
 
-<!-- Main Form -->
-<div class="main-form-container mb-5">
-  <div class="glass-card p-5 lift-hover">
-    <form method="post" action="{{ url_for('generate') }}" class="row g-4 needs-validation" id="generate-form" novalidate>
-      
-      <!-- Path Name -->
-      <div class="col-12">
-        <label for="path_name" class="form-label fs-5 fw-bold mb-3">
-          <i class="fas fa-edit text-primary me-2"></i>Path Name
-        </label>
-        <div class="input-group input-group-lg">
-          <span class="input-group-text bg-transparent border-0 ps-0">
-            <i class="fas fa-route text-muted"></i>
-          </span>
-          <input type="text" class="form-control app-input shadow-none border-0 ps-5 bg-transparent" 
-                 id="path_name" name="path_name" placeholder="e.g. Full-Stack Developer Mastery" required>
-          <span class="input-group-text bg-transparent border-0 pe-0">
-            <i class="fas fa-star text-warning small"></i>
-          </span>
-        </div>
-        <div class="invalid-feedback">Please give your path a memorable name</div>
-      </div>
+<!-- Form Card -->
+<div class="gen-card mb-5">
+  <form method="post" action="{{ url_for('generate') }}" id="generate-form" novalidate>
 
-      <!-- Domain & Level Row -->
-      <div class="col-lg-6">
-        <label for="domain" class="form-label fs-5 fw-bold mb-3">
+    <!-- Path Name -->
+    <div class="gen-field">
+      <label class="gen-label" for="path_name">
+        <i class="fas fa-edit text-primary me-2"></i>Path Name
+      </label>
+      <input type="text" class="gen-input" id="path_name" name="path_name"
+             placeholder="e.g. Full-Stack Developer Mastery" required>
+    </div>
+
+    <!-- Domain + Level -->
+    <div class="gen-row">
+      <div class="gen-field">
+        <label class="gen-label" for="domain">
           <i class="fas fa-layer-group text-success me-2"></i>Domain
         </label>
-        <select class="form-select app-input h-100 shadow-lg" id="domain" name="domain" required>
-          <option value="">Choose your domain...</option>
+        <select class="gen-input gen-select" id="domain" name="domain" required>
+          <option value="">Choose your domainâ€¦</option>
           {% for d in domains %}
           <option value="{{ d }}">{{ d }}</option>
           {% endfor %}
         </select>
       </div>
-      
-      <div class="col-lg-6">
-        <label for="current_level" class="form-label fs-5 fw-bold mb-3">
-          <i class="fas fa-level-up-alt text-info me-2"></i>Current Level
+      <div class="gen-field">
+        <label class="gen-label" for="current_level">
+          <i class="fas fa-signal text-info me-2"></i>Current Level
         </label>
-        <select class="form-select app-input h-100 shadow-lg" id="current_level" name="current_level" required>
-          <option value="">Select your experience level</option>
-          <option value="Beginner">🟢 Beginner (No prior experience)</option>
-          <option value="Intermediate">🟡 Intermediate (Some experience)</option>
-          <option value="Advanced">🔴 Advanced (Professional level)</option>
+        <select class="gen-input gen-select" id="current_level" name="current_level" required>
+          <option value="">Select your levelâ€¦</option>
+          <option value="Beginner">Beginner</option>
+          <option value="Intermediate">Intermediate</option>
+          <option value="Advanced">Advanced</option>
         </select>
       </div>
+    </div>
 
-      <!-- Target Role -->
-      <div class="col-12">
-        <label for="target_role" class="form-label fs-5 fw-bold mb-3">
-          <i class="fas fa-user-tie text-warning me-2"></i>Target Role
+    <!-- Target Role -->
+    <div class="gen-field">
+      <label class="gen-label" for="target_role">
+        <i class="fas fa-user-tie text-warning me-2"></i>Target Role
+      </label>
+      <input type="text" class="gen-input" id="target_role" name="target_role"
+             placeholder="e.g. ML Engineer, Full-Stack Developer, Data Scientist" required>
+      <span class="gen-hint"><i class="fas fa-lightbulb me-1"></i>Be specific â€” helps AI create a better roadmap</span>
+    </div>
+
+
+    <!-- Learning Style -->
+    <div class="gen-field">
+      <label class="gen-label"><i class="fas fa-brain text-purple me-2"></i>Learning Style</label>
+      <div class="gen-style-grid">
+        <label class="gen-style-opt">
+          <input type="radio" name="learning_style" value="practical" checked>
+          <span><i class="fas fa-code me-1"></i>Hands-on</span>
         </label>
-        <div class="input-group input-group-lg">
-          <span class="input-group-text bg-transparent border-0 ps-0">
-            <i class="fas fa-briefcase text-muted"></i>
-          </span>
-          <input type="text" class="form-control app-input shadow-none border-0 ps-5 bg-transparent" 
-                 id="target_role" name="target_role" placeholder="e.g. Senior ML Engineer, Full-Stack Developer, Data Scientist" required>
-          <span class="input-group-text bg-transparent border-0 pe-0">
-            <i class="fas fa-search text-primary small"></i>
-          </span>
-        </div>
-        <div class="form-text mt-2">Be specific - helps AI create better roadmap</div>
-      </div>
-
-      <!-- Study Hours Slider -->
-      <div class="col-12">
-        <label for="weekly_study_hours" class="form-label fs-5 fw-bold mb-4">
-          <i class="fas fa-clock text-secondary me-2"></i>Weekly Study Hours
+        <label class="gen-style-opt">
+          <input type="radio" name="learning_style" value="visual">
+          <span><i class="fas fa-play-circle me-1"></i>Visual</span>
         </label>
-        <div class="slider-container p-4 bg-white bg-opacity-10 rounded-3">
-          <input type="range" class="form-range w-100 slider-primary" id="weekly_study_hours" name="weekly_study_hours" 
-                 min="1" max="40" value="10" step="1">
-          <div class="slider-values d-flex justify-content-between mt-3">
-            <small class="text-muted">1h/week</small>
-            <span id="hours_display" class="fw-bold fs-5 text-primary">10 hours</span>
-            <small class="text-muted">40h/week</small>
-          </div>
-          <div class="slider-estimate mt-2 text-center">
-            <small class="text-muted">~{{ estimated_duration|default('3-6') }} months to complete</small>
-          </div>
-        </div>
-      </div>
-
-      <!-- Known Skills -->
-      <div class="col-12">
-        <label for="known_skills" class="form-label fs-5 fw-bold mb-3">
-          <i class="fas fa-check-square text-success me-2"></i>Skip These Skills (comma separated)
+        <label class="gen-style-opt">
+          <input type="radio" name="learning_style" value="theoretical">
+          <span><i class="fas fa-book me-1"></i>Theory</span>
         </label>
-        <div class="input-group">
-          <span class="input-group-text bg-transparent border-0 ps-0">
-            <i class="fas fa-graduation-cap text-muted"></i>
-          </span>
-          <textarea class="form-control app-input shadow-none border-0 ps-5 bg-transparent" 
-                    id="known_skills" name="known_skills" rows="3" placeholder="Python, HTML/CSS, Git, Basic ML... (AI will skip these)"></textarea>
+        <label class="gen-style-opt">
+          <input type="radio" name="learning_style" value="balanced">
+          <span><i class="fas fa-balance-scale me-1"></i>Balanced</span>
+        </label>
+      </div>
+      <span class="gen-hint">Shapes how tasks and resources are selected for you</span>
+    </div>
+    <!-- Weekly Hours -->
+    <div class="gen-field">
+      <label class="gen-label" for="weekly_study_hours">
+        <i class="fas fa-clock text-secondary me-2"></i>Weekly Study Hours
+      </label>
+      <div class="gen-slider-wrap">
+        <input type="range" class="gen-slider" id="weekly_study_hours" name="weekly_study_hours"
+               min="1" max="40" value="10" step="1">
+        <div class="gen-slider-meta">
+          <span class="text-muted small">1h/week</span>
+          <span class="gen-hours-val" id="hours_display">10 hours/week</span>
+          <span class="text-muted small">40h/week</span>
         </div>
-        <div class="form-text mt-2">
-          <i class="fas fa-lightbulb me-1"></i>List skills you already know well
+        <div class="text-center mt-1">
+          <small class="text-muted" id="duration_estimate">~3â€“6 months to complete</small>
         </div>
       </div>
+    </div>
 
-      <!-- Generate Button -->
-      <div class="col-12 text-center pt-3">
-        <button type="submit" class="btn btn-lg app-btn-primary-glow px-6 rounded-pill shadow-lg position-relative overflow-hidden" id="generate-btn">
-          <span class="btn-icon">
-            <i class="fas fa-brain spin-slow me-2"></i>
-          </span>
-          <span class="btn-text">✨ Generate My Personalized Roadmap</span>
-          <div class="btn-glow"></div>
-        </button>
-        <div class="mt-3 small text-muted">
-          <i class="fas fa-shield-alt me-1"></i>Secure • Private • AI-Optimized
-        </div>
-      </div>
-    </form>
-  </div>
+    <!-- Known Skills -->
+    <div class="gen-field">
+      <label class="gen-label" for="known_skills">
+        <i class="fas fa-check-square text-success me-2"></i>Skills to Skip <span class="text-muted fw-normal">(comma separated)</span>
+      </label>
+      <textarea class="gen-input gen-textarea" id="known_skills" name="known_skills" rows="3"
+                placeholder="Python, HTML/CSS, Git, Basic MLâ€¦ (AI will skip these)"></textarea>
+      <span class="gen-hint"><i class="fas fa-info-circle me-1"></i>List skills you already know well</span>
+    </div>
+
+    <!-- Goal Date (optional) -->
+    <div class="gen-field">
+      <label class="gen-label" for="goal_date">
+        <i class="fas fa-calendar-alt text-danger me-2"></i>Target Completion Date <span class="text-muted fw-normal">(optional)</span>
+      </label>
+      <input type="date" class="gen-input" id="goal_date" name="goal_date">
+    </div>
+
+    <!-- Submit -->
+    <div class="gen-submit">
+      <button type="submit" class="gen-btn" id="generate-btn">
+        <i class="fas fa-brain me-2"></i>Generate My Personalized Roadmap
+      </button>
+      <p class="text-muted small mt-2 mb-0">
+        <i class="fas fa-shield-alt me-1"></i>Secure Â· Private Â· AI-Optimized
+      </p>
+    </div>
+
+  </form>
 </div>
 
 <!-- Progress Modal -->
 <div class="modal fade" id="progressModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-  <div class="modal-dialog modal-dialog-centered modal-lg">
-    <div class="modal-content glass-card border-0 shadow-2xl overflow-hidden">
-      <div class="modal-header border-0 pb-0">
-        <div class="ai-thinking mb-3">
-          <div class="thinking-animation">
-            <i class="fas fa-robot"></i>
-            <i class="fas fa-brain"></i>
-            <i class="fas fa-magic"></i>
-          </div>
-          <h5 class="mt-3 mb-0 fw-bold text-primary">AI is crafting your perfect path...</h5>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content gen-modal">
+      <div class="modal-body p-4 text-center">
+        <div class="gen-thinking mb-3">
+          <i class="fas fa-robot"></i>
+          <i class="fas fa-brain"></i>
+          <i class="fas fa-magic"></i>
         </div>
-      </div>
-      <div class="modal-body p-4">
-        <div class="progress-stages">
-          <div class="progress-stage active" data-stage="1">
-            <div class="stage-icon">
-              <i class="fas fa-search"></i>
-            </div>
-            <div class="stage-content">
-              <div class="stage-title">🔍 Analyzing your goals</div>
-              <div class="stage-description">Understanding role requirements & skill gaps</div>
-            </div>
-            <div class="stage-progress">
-              <div class="progress-bar-fill"></div>
+        <h5 class="fw-bold mb-1">AI is crafting your pathâ€¦</h5>
+        <p class="text-muted small mb-4">This may take up to 30 seconds</p>
+        <div class="gen-stages">
+          <div class="gen-stage active" data-stage="1">
+            <div class="gen-stage-icon"><i class="fas fa-search"></i></div>
+            <div class="gen-stage-text">
+              <div class="fw-semibold">Analyzing your goals</div>
+              <small class="text-muted">Understanding role requirements</small>
             </div>
           </div>
-          <div class="progress-stage" data-stage="2">
-            <div class="stage-icon">
-              <i class="fas fa-brain"></i>
-            </div>
-            <div class="stage-content">
-              <div class="stage-title">🤖 AI Processing</div>
-              <div class="stage-description">Generating optimal learning sequence</div>
-            </div>
-            <div class="stage-progress">
-              <div class="progress-bar-fill"></div>
+          <div class="gen-stage" data-stage="2">
+            <div class="gen-stage-icon"><i class="fas fa-brain"></i></div>
+            <div class="gen-stage-text">
+              <div class="fw-semibold">AI Processing</div>
+              <small class="text-muted">Generating optimal sequence</small>
             </div>
           </div>
-          <div class="progress-stage" data-stage="3">
-            <div class="stage-icon">
-              <i class="fas fa-book-open"></i>
-            </div>
-            <div class="stage-content">
-              <div class="stage-title">📚 Curating Resources</div>
-              <div class="stage-description">Finding best courses, projects & practice</div>
-            </div>
-            <div class="stage-progress">
-              <div class="progress-bar-fill"></div>
+          <div class="gen-stage" data-stage="3">
+            <div class="gen-stage-icon"><i class="fas fa-book-open"></i></div>
+            <div class="gen-stage-text">
+              <div class="fw-semibold">Curating Resources</div>
+              <small class="text-muted">Finding best courses & projects</small>
             </div>
           </div>
-          <div class="progress-stage" data-stage="4">
-            <div class="stage-icon">
-              <i class="fas fa-sparkles"></i>
-            </div>
-            <div class="stage-content">
-              <div class="stage-title">✨ Finalizing Roadmap</div>
-              <div class="stage-description">Optimizing timeline & milestones</div>
-            </div>
-            <div class="stage-progress">
-              <div class="progress-bar-fill"></div>
+          <div class="gen-stage" data-stage="4">
+            <div class="gen-stage-icon"><i class="fas fa-check-circle"></i></div>
+            <div class="gen-stage-text">
+              <div class="fw-semibold">Finalizing Roadmap</div>
+              <small class="text-muted">Optimizing timeline & milestones</small>
             </div>
           </div>
-        </div>
-        <div class="estimated-time text-center mt-4">
-          <i class="fas fa-clock me-2"></i>
-          <span>~45 seconds</span>
         </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Emerging Roles Table -->
+<!-- Emerging Roles -->
 {% if emerging_roles %}
-<div class="emerging-roles-section mt-5">
-  <div class="glass-card p-5 lift-hover">
-    <div class="section-header mb-5 text-center">
-      <h3 class="mb-3">
-        <i class="fas fa-chart-line text-success me-3"></i>2026 Emerging Roles
-      </h3>
-      <p class="lead text-muted">Popular AI/ML roles with salary insights</p>
-    </div>
-    <div class="table-responsive">
-      <table class="table table-hover align-middle emerging-roles-table">
-        <thead class="table-dark table-header-gradient">
-          <tr>
-            <th><i class="fas fa-user-tie me-2"></i>Role</th>
-            <th><i class="fas fa-layer-group me-2"></i>Key Skills</th>
-            <th><i class="fas fa-dollar-sign me-2"></i>Salary Range</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for r in emerging_roles %}
-          <tr class="table-row-hover">
-            <td>
-              <div class="role-info">
-                <h6 class="mb-1 fw-bold">{{ r.role }}</h6>
-                <small class="text-muted">{{ r.level }} level</small>
-              </div>
-            </td>
-            <td>
-              <div class="skills-tags">
-                {% for skill in r.skills.split(', ')[:5] %}
-                <span class="badge bg-primary-subtle text-primary rounded-pill px-3 py-1 small">{{ skill }}</span>
-                {% endfor %}
-                {% if r.skills.split(', ') | length > 5 %}
-                <span class="badge bg-secondary text-white rounded-pill px-2 py-1 small">+{{ r.skills.split(', ') | length - 5 }} more</span>
-                {% endif %}
-              </div>
-            </td>
-            <td>
-              <div class="salary-badge glass-card px-3 py-2">
-                <strong>${{ r.salary_range }}</strong>
-                <small class="d-block text-muted">annual</small>
-              </div>
-            </td>
-            <td>
-              <button class="btn btn-outline-primary btn-sm rounded-pill quick-generate" data-role="{{ r.role }}">
-                <i class="fas fa-magic me-1"></i>Generate
-              </button>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+<div class="gen-card mb-4">
+  <div class="gen-card-header">
+    <span><i class="fas fa-chart-line text-success me-2"></i>2026 Emerging Roles</span>
+    <span class="text-muted small">Click Generate to auto-fill</span>
+  </div>
+  <div class="table-responsive">
+    <table class="gen-table">
+      <thead>
+        <tr>
+          <th>Role</th>
+          <th>Key Skills</th>
+          <th>Salary Range</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in emerging_roles %}
+        <tr>
+          <td>
+            <div class="fw-semibold">{{ r.role }}</div>
+            <small class="text-muted">{{ r.level }}</small>
+          </td>
+          <td>
+            <div class="gen-tags">
+              {% for skill in r.skills.split(', ')[:4] %}
+              <span class="gen-tag">{{ skill }}</span>
+              {% endfor %}
+            </div>
+          </td>
+          <td><span class="gen-salary">{{ r.salary_range }}</span></td>
+          <td>
+            <button class="gen-quick-btn quick-generate" data-role="{{ r.role }}">
+              <i class="fas fa-magic me-1"></i>Use
+            </button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
 </div>
 {% endif %}
-{% endblock %}
 
+{% endblock %}
 {% block scripts %}
 <style>
-  .generate-hero {
-    padding: 4rem 0;
-    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
-    border-radius: 0 0 48px 48px;
-    margin: -2rem -1rem 0 -1rem;
-    backdrop-filter: blur(20px);
-  }
+:root {
+  --glass-bg: rgba(255,255,255,.06);
+  --glass-border: rgba(255,255,255,.1);
+  --primary-gradient: linear-gradient(135deg,#667eea,#764ba2);
+  --success-gradient: linear-gradient(135deg,#4facfe,#00f2fe);
+}
 
-  .ai-badge {
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(52, 211, 153, 0.2));
-    border: 1px solid rgba(16, 185, 129, 0.3);
-  }
+/* Hero */
+.gen-hero { padding: 1.5rem 0 .5rem; }
+.gen-title { font-size: clamp(1.5rem,3vw,2.2rem); font-weight:800; letter-spacing:-.02em; background:var(--primary-gradient); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+.gen-ai-badge { display:inline-flex; align-items:center; padding:.5rem 1rem; border-radius:99px; background:rgba(99,102,241,.12); border:1px solid rgba(99,102,241,.25); font-size:.85rem; }
+.gen-dot { width:8px; height:8px; border-radius:50%; background:#10b981; margin-left:.6rem; animation:pulse-dot 2s infinite; }
+@keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:.4} }
 
-  .input-group .form-control:focus {
-    border-color: transparent;
-    box-shadow: none;
-    background: rgba(255,255,255,0.15);
-  }
+/* Alert */
+.gen-alert { display:flex; align-items:flex-start; gap:.75rem; padding:1rem 1.25rem; border-radius:12px; background:rgba(239,68,68,.1); border:1px solid rgba(239,68,68,.25); }
 
-  .slider-container {
-    border: 1px solid var(--glass-border);
-    border-radius: 20px;
-    backdrop-filter: blur(10px);
-  }
+/* Card */
+.gen-card { background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.09); border-radius:20px; overflow:hidden; }
+.gen-card-header { display:flex; align-items:center; justify-content:space-between; padding:.9rem 1.5rem; border-bottom:1px solid rgba(255,255,255,.07); font-weight:600; }
 
-  .slider-primary::-webkit-slider-thumb {
-    background: var(--primary-gradient);
-    border: 2px solid white;
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-  }
+/* Form layout */
+.gen-card form { padding: 2rem; display:flex; flex-direction:column; gap:1.5rem; }
+.gen-row { display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; }
+@media(max-width:640px){ .gen-row { grid-template-columns:1fr; } }
 
-  .app-btn-primary-glow {
-    background: var(--success-gradient);
-    border: none;
-    font-weight: 700;
-    font-size: 1.1rem;
-    padding: 1rem 3rem;
-    position: relative;
-    overflow: hidden;
-  }
+/* Field */
+.gen-field { display:flex; flex-direction:column; gap:.5rem; }
+.gen-label { font-size:.9rem; font-weight:600; color:#e2e8f0; }
+.gen-hint { font-size:.78rem; color:#64748b; }
 
-  .app-btn-primary-glow::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-    transition: left 0.6s;
-  }
+/* Inputs */
+.gen-input {
+  width:100%; padding:.7rem 1rem; border-radius:10px;
+  background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.12);
+  color:#f8fafc; font-size:.95rem; outline:none;
+  transition:border-color .2s, background .2s;
+  appearance:none; -webkit-appearance:none;
+}
+.gen-input:focus { border-color:#6366f1; background:rgba(99,102,241,.1); }
+.gen-input::placeholder { color:#64748b; }
+.gen-select { cursor:pointer; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 1rem center; padding-right:2.5rem; }
+.gen-select option { background:#1e293b; color:#f8fafc; }
+.gen-textarea { resize:vertical; min-height:80px; }
 
-  .app-btn-primary-glow:hover::before {
-    left: 100%;
-  }
+/* Slider */
+.gen-slider-wrap { display:flex; flex-direction:column; gap:.5rem; padding:1.1rem 1.25rem; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.09); border-radius:12px; }
+.gen-slider { width:100%; accent-color:#6366f1; height:6px; cursor:pointer; }
+.gen-slider-meta { display:flex; justify-content:space-between; align-items:center; }
+.gen-hours-val { font-size:1rem; font-weight:700; color:#6366f1; }
 
-  .btn-glow {
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
-    opacity: 0;
-    transition: opacity 0.6s;
-  }
+/* Learning style */
+.gen-style-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:.6rem; }
+@media(max-width:500px){ .gen-style-grid { grid-template-columns:repeat(2,1fr); } }
+.gen-style-opt { cursor:pointer; }
+.gen-style-opt input { display:none; }
+.gen-style-opt span { display:flex; align-items:center; justify-content:center; gap:.4rem; padding:.55rem .75rem; border-radius:10px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); font-size:.85rem; font-weight:500; color:#94a3b8; transition:all .2s; }
+.gen-style-opt input:checked + span { background:rgba(99,102,241,.2); border-color:#6366f1; color:#a5b4fc; font-weight:600; }
+.gen-style-opt:hover span { background:rgba(255,255,255,.08); color:#e2e8f0; }
 
-  .app-btn-primary-glow:hover .btn-glow {
-    opacity: 1;
-  }
+/* Submit */
+.gen-submit { display:flex; flex-direction:column; align-items:center; padding-top:.5rem; }
+.gen-btn { display:inline-flex; align-items:center; gap:.5rem; padding:.85rem 2.5rem; border-radius:99px; background:linear-gradient(135deg,#6366f1,#8b5cf6); border:none; color:#fff; font-size:1rem; font-weight:700; cursor:pointer; transition:transform .2s, box-shadow .2s; box-shadow:0 4px 20px rgba(99,102,241,.4); }
+.gen-btn:hover { transform:translateY(-2px); box-shadow:0 8px 28px rgba(99,102,241,.5); }
+.gen-btn:active { transform:translateY(0); }
 
-  .spin-slow {
-    animation: spin 3s linear infinite;
-  }
+/* Modal */
+.gen-modal { background:#0f172a; border:1px solid rgba(255,255,255,.1); border-radius:20px; color:#f8fafc; }
+.gen-thinking { display:flex; justify-content:center; gap:1rem; font-size:2rem; }
+.gen-thinking i { animation:bounce-icon 1.4s infinite; }
+.gen-thinking i:nth-child(2) { animation-delay:.15s; }
+.gen-thinking i:nth-child(3) { animation-delay:.3s; }
+@keyframes bounce-icon { 0%,100%{transform:translateY(0)} 40%{transform:translateY(-12px)} }
+.gen-stages { display:flex; flex-direction:column; gap:1rem; text-align:left; }
+.gen-stage { display:flex; align-items:center; gap:1rem; padding:.75rem 1rem; border-radius:12px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06); opacity:.45; transition:all .3s; }
+.gen-stage.active { opacity:1; border-color:rgba(99,102,241,.4); background:rgba(99,102,241,.08); }
+.gen-stage-icon { width:38px; height:38px; border-radius:10px; background:rgba(255,255,255,.07); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.gen-stage.active .gen-stage-icon { background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; }
 
-  @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-  }
-
-  /* Modal Styles */
-  .modal-content {
-    background: var(--glass-bg);
-    backdrop-filter: blur(30px);
-    border: 1px solid var(--glass-border);
-    border-radius: 28px;
-  }
-
-  .thinking-animation {
-    display: flex;
-    gap: 1rem;
-    justify-content: center;
-    font-size: 2.5rem;
-  }
-
-  .thinking-animation i {
-    animation: bounce 1.5s infinite;
-  }
-
-  .thinking-animation i:nth-child(2) { animation-delay: 0.2s; }
-  .thinking-animation i:nth-child(3) { animation-delay: 0.4s; }
-
-  @keyframes bounce {
-    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-    40% { transform: translateY(-20px); }
-    60% { transform: translateY(-10px); }
-  }
-
-  .progress-stages {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-  }
-
-  .progress-stage {
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
-    opacity: 0.5;
-    transition: all 0.4s ease;
-  }
-
-  .progress-stage.active {
-    opacity: 1;
-    transform: translateX(0);
-  }
-
-  .stage-icon {
-    width: 60px;
-    height: 60px;
-    border-radius: 16px;
-    background: rgba(255,255,255,0.1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5rem;
-    flex-shrink: 0;
-    backdrop-filter: blur(10px);
-    border: 2px solid var(--glass-border);
-  }
-
-  .progress-stage.active .stage-icon {
-    background: var(--primary-gradient);
-    color: white;
-    animation: pulse-glow 2s infinite;
-  }
-
-  @keyframes pulse-glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(102, 126, 234, 0.5); }
-    50% { box-shadow: 0 0 40px rgba(102, 126, 234, 0.8); }
-  }
-
-  .stage-progress {
-    flex: 1;
-    height: 4px;
-    background: rgba(255,255,255,0.1);
-    border-radius: 2px;
-    overflow: hidden;
-    margin-left: 1rem;
-  }
-
-  .progress-stage.active .stage-progress .progress-bar-fill {
-    animation: progress-fill 1.5s ease-out forwards;
-    background: var(--primary-gradient);
-    height: 100%;
-  }
-
-  .emerging-roles-table {
-    margin-top: 2rem;
-  }
-
-  .table-header-gradient {
-    background: var(--primary-gradient) !important;
-  }
-
-  .salary-badge {
-    backdrop-filter: blur(10px);
-  }
-
-  .skills-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-
-  @media (max-width: 768px) {
-    .generate-hero { margin: -1rem; border-radius: 0; }
-    .main-form-container .row > div { margin-bottom: 1.5rem; }
-  }
+/* Table */
+.gen-table { width:100%; border-collapse:collapse; }
+.gen-table th { padding:.75rem 1.25rem; font-size:.78rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#64748b; border-bottom:1px solid rgba(255,255,255,.07); }
+.gen-table td { padding:.85rem 1.25rem; border-bottom:1px solid rgba(255,255,255,.05); vertical-align:middle; }
+.gen-table tr:last-child td { border-bottom:none; }
+.gen-table tr:hover td { background:rgba(255,255,255,.03); }
+.gen-tags { display:flex; flex-wrap:wrap; gap:.35rem; }
+.gen-tag { font-size:.72rem; padding:.2rem .55rem; border-radius:99px; background:rgba(99,102,241,.18); color:#818cf8; font-weight:500; }
+.gen-salary { font-weight:700; color:#10b981; font-size:.9rem; }
+.gen-quick-btn { padding:.35rem .85rem; border-radius:99px; background:rgba(99,102,241,.15); border:1px solid rgba(99,102,241,.3); color:#818cf8; font-size:.8rem; font-weight:600; cursor:pointer; transition:background .2s; }
+.gen-quick-btn:hover { background:rgba(99,102,241,.3); }
 </style>
 
 <script>
-// Form validation & interactions
-document.addEventListener('DOMContentLoaded', function() {
-  const form = document.getElementById('generate-form');
+document.addEventListener('DOMContentLoaded', function () {
   const slider = document.getElementById('weekly_study_hours');
   const hoursDisplay = document.getElementById('hours_display');
-  const generateBtn = document.getElementById('generate-btn');
-  
-  // Slider handler
-  slider.addEventListener('input', function() {
-    const hours = this.value;
-    hoursDisplay.textContent = `${hours} hours`;
-    
-    // Dynamic duration estimate
-    const duration = Math.round((100 * 10) / hours / 4); // rough estimate
-    document.querySelector('.slider-estimate small').textContent = `~${duration} weeks estimated`;
+  const durationEl = document.getElementById('duration_estimate');
+  const form = document.getElementById('generate-form');
+
+  slider.addEventListener('input', function () {
+    const h = parseInt(this.value);
+    hoursDisplay.textContent = `${h} hour${h !== 1 ? 's' : ''}/week`;
+    const weeks = Math.round(120 / h);
+    const months = Math.round(weeks / 4);
+    durationEl.textContent = `~${months < 1 ? 1 : months}â€“${months + 2} months to complete`;
   });
 
-  // Form validation
-  form.addEventListener('submit', function(e) {
-    if (!form.checkValidity()) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    
+  form.addEventListener('submit', function (e) {
+    const required = form.querySelectorAll('[required]');
+    let valid = true;
+    required.forEach(el => { if (!el.value.trim()) { el.style.borderColor = '#ef4444'; valid = false; } else { el.style.borderColor = ''; } });
+    if (!valid) { e.preventDefault(); return; }
     const modal = new bootstrap.Modal(document.getElementById('progressModal'));
     modal.show();
-    
-    // Progress animation
-    const stages = document.querySelectorAll('.progress-stage');
-    let currentStage = 0;
-    
-    const stageTimer = setInterval(() => {
-      if (currentStage > 0) {
-        stages[currentStage - 1].classList.remove('active');
-      }
-      if (currentStage < stages.length) {
-        stages[currentStage].classList.add('active');
-        currentStage++;
-      } else {
-        clearInterval(stageTimer);
-        // Submit after animation
-        setTimeout(() => form.submit(), 500);
-      }
-    }, 1200);
+    const stages = document.querySelectorAll('.gen-stage');
+    let i = 0;
+    const t = setInterval(() => {
+      stages.forEach(s => s.classList.remove('active'));
+      if (i < stages.length) { stages[i].classList.add('active'); i++; }
+      else clearInterval(t);
+    }, 1500);
   });
 
-  // Quick generate from roles table
   document.querySelectorAll('.quick-generate').forEach(btn => {
-    btn.addEventListener('click', function() {
+    btn.addEventListener('click', function () {
       const role = this.dataset.role;
       document.getElementById('target_role').value = role;
       document.getElementById('path_name').value = `${role} Roadmap`;
-      generateBtn.click();
-    });
-  });
-
-  // Input focus effects
-  document.querySelectorAll('.app-input').forEach(input => {
-    input.addEventListener('focus', function() {
-      this.parentElement.style.transform = 'scale(1.02)';
-    });
-    input.addEventListener('blur', function() {
-      this.parentElement.style.transform = 'scale(1)';
+      document.getElementById('generate-btn').click();
     });
   });
 });

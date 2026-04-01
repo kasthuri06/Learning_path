@@ -142,9 +142,18 @@ body,
 .app-select,
 .app-textarea,
 .form-control.app-input,
-.form-select.app-input,
-.form-control:not(.form-range),
-.form-select {
+.form-select.app-input {
+  background: var(--app-bg-input) !important;
+  border: 1px solid var(--app-border) !important;
+  border-radius: var(--app-radius-sm) !important;
+  color: var(--app-text) !important;
+  padding: 0.6rem 0.85rem !important;
+  transition: border-color var(--app-transition), box-shadow var(--app-transition);
+}
+
+/* Only apply to Bootstrap form-controls NOT using gen-input (generate page has its own styles) */
+.form-control:not(.gen-input):not([class*="gen-"]),
+.form-select:not(.gen-select):not([class*="gen-"]) {
   background: var(--app-bg-input) !important;
   border: 1px solid var(--app-border) !important;
   border-radius: var(--app-radius-sm) !important;
