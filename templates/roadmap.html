@@ -85,6 +85,30 @@
 </div>
 {% endif %}
 
+<!-- Adaptive Personalization Banner -->
+{% if roadmap_id %}
+<div id="adaptive-banner" class="alert alert-info alert-dismissible d-flex align-items-center justify-content-between gap-3 mb-4" role="alert" style="display:none!important" data-roadmap-id="{{ roadmap_id }}">
+  <div>
+    <i class="fas fa-robot me-2"></i>
+    <strong>Your roadmap has been personalized</strong> — topics are ordered by your learning signals.
+  </div>
+  <div class="d-flex gap-2 flex-shrink-0">
+    <button id="restore-order-btn" class="btn btn-sm btn-outline-light rounded-pill" data-roadmap-id="{{ roadmap_id }}">
+      <i class="fas fa-undo me-1"></i>Restore Original Order
+    </button>
+    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+</div>
+<div id="resume-personalization-banner" class="alert alert-secondary d-flex align-items-center justify-content-between gap-3 mb-4" role="alert" style="display:none" data-roadmap-id="{{ roadmap_id }}">
+  <div>
+    <i class="fas fa-pause-circle me-2"></i>Personalization is paused for this roadmap.
+  </div>
+  <button id="resume-personalization-btn" class="btn btn-sm btn-outline-secondary rounded-pill" data-roadmap-id="{{ roadmap_id }}">
+    <i class="fas fa-play me-1"></i>Resume Personalization
+  </button>
+</div>
+{% endif %}
+
 <!-- Smart Planner -->
 {% if roadmap %}
 <div class="smart-planner glass-card p-4 mb-4">
@@ -353,6 +377,29 @@
 {% endif %}
 {% endblock %}
 
+<!-- Quiz Modal -->
+<div class="modal fade" id="quizModal" tabindex="-1" aria-labelledby="quizModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="background:rgba(30,30,50,.97);border:1px solid rgba(255,255,255,.15);border-radius:20px">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title" id="quizModalLabel"><i class="fas fa-brain text-primary me-2"></i>Quick Knowledge Check</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" id="quiz-dismiss-btn"></button>
+      </div>
+      <div class="modal-body" id="quiz-modal-body">
+        <div class="text-center py-4">
+          <i class="fas fa-spinner fa-spin fs-2 text-primary mb-3 d-block"></i>
+          <p class="text-muted">Generating quiz...</p>
+        </div>
+      </div>
+      <div class="modal-footer border-0 pt-0" id="quiz-modal-footer" style="display:none">
+        <button type="button" class="btn btn-primary rounded-pill px-4" id="quiz-submit-btn">
+          <i class="fas fa-check me-1"></i>Submit Answers
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% block scripts %}
 <style>
 .roadmap-hero {
@@ -550,6 +597,154 @@
   });
 
   // All other existing event listeners preserved...
+})();
+
+// ---- Adaptive Banner & Quiz ----
+(function() {
+  const roadmapId = document.querySelector('[data-roadmap-id]')?.dataset.roadmapId;
+
+  // Check personalization pause state — read-only, does NOT write preferences
+  function checkPersonalizationState() {
+    if (!roadmapId) return;
+    // Hide both banners first, then decide which to show
+    const adaptiveBanner = document.getElementById('adaptive-banner');
+    const resumeBanner = document.getElementById('resume-personalization-banner');
+
+    fetch('/api/recommendations')
+      .then(r => r.json())
+      .then(data => {
+        const recs = data.recommendations || [];
+        const hasRecs = recs.some(r => r.roadmap_id == roadmapId);
+        if (adaptiveBanner && hasRecs) {
+          adaptiveBanner.style.removeProperty('display');
+          adaptiveBanner.style.display = 'flex';
+          if (resumeBanner) resumeBanner.style.display = 'none';
+        }
+      }).catch(() => {});
+  }
+
+  // Restore original order
+  document.getElementById('restore-order-btn')?.addEventListener('click', function() {
+    const rid = this.dataset.roadmapId;
+    const until = new Date(Date.now() + 24*60*60*1000).toISOString();
+    fetch('/api/preferences', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({key: `personalization_paused_${rid}`, value: until})
+    }).then(() => {
+      document.getElementById('adaptive-banner').style.display = 'none';
+      document.getElementById('resume-personalization-banner').style.display = 'flex';
+    });
+  });
+
+  // Resume personalization
+  document.getElementById('resume-personalization-btn')?.addEventListener('click', function() {
+    const rid = this.dataset.roadmapId;
+    fetch('/api/preferences', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({key: `personalization_paused_${rid}`, value: ''})
+    }).then(() => {
+      document.getElementById('resume-personalization-banner').style.display = 'none';
+      // Show the adaptive banner immediately without waiting for recommendations check
+      const adaptiveBanner = document.getElementById('adaptive-banner');
+      if (adaptiveBanner) {
+        adaptiveBanner.style.removeProperty('display');
+        adaptiveBanner.style.display = 'flex';
+      }
+    });
+  });
+
+  // Quiz: trigger after mark_completed form submit
+  let _quizTopic = null;
+  let _quizQuestions = [];
+
+  document.querySelectorAll('form[action*="mark_completed"]').forEach(form => {
+    form.addEventListener('submit', function(e) {
+      const topicInput = this.querySelector('input[name="topic"]');
+      const roadmapInput = this.querySelector('input[name="roadmap_id"]');
+      if (!topicInput || !roadmapInput) return;
+      _quizTopic = topicInput.value;
+      const rid = roadmapInput.value;
+
+      // After a short delay (let the form submit), show quiz
+      setTimeout(() => {
+        initQuizModal(_quizTopic, rid);
+      }, 800);
+    });
+  });
+
+  function initQuizModal(topic, rid) {
+    _quizQuestions = [];
+    const body = document.getElementById('quiz-modal-body');
+    const footer = document.getElementById('quiz-modal-footer');
+    if (!body) return;
+
+    body.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin fs-2 text-primary mb-3 d-block"></i><p class="text-muted">Generating quiz for "' + topic + '"...</p></div>';
+    if (footer) footer.style.display = 'none';
+
+    const modal = new bootstrap.Modal(document.getElementById('quizModal'));
+    modal.show();
+
+    fetch('/api/quiz/generate', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({topic: topic, roadmap_id: parseInt(rid)})
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.skipped || !data.questions || !data.questions.length) {
+        body.innerHTML = '<div class="text-center py-4 text-muted"><i class="fas fa-check-circle text-success fs-2 mb-2 d-block"></i>Topic marked complete! No quiz available right now.</div>';
+        return;
+      }
+      _quizQuestions = data.questions;
+      body.innerHTML = data.questions.map((q, i) => `
+        <div class="mb-4">
+          <p class="fw-semibold mb-2">${i+1}. ${q.q}</p>
+          ${q.options.map((opt, j) => `
+            <div class="form-check mb-1">
+              <input class="form-check-input" type="radio" name="quiz_q${i}" id="q${i}_opt${j}" value="${opt[0]}">
+              <label class="form-check-label" for="q${i}_opt${j}">${opt}</label>
+            </div>`).join('')}
+        </div>`).join('');
+      if (footer) footer.style.display = '';
+    })
+    .catch(() => {
+      body.innerHTML = '<div class="text-center py-4 text-muted">Could not load quiz. Topic marked complete!</div>';
+    });
+  }
+
+  document.getElementById('quiz-submit-btn')?.addEventListener('click', function() {
+    if (!_quizQuestions.length || !_quizTopic) return;
+    const answers = _quizQuestions.map((q, i) => {
+      const selected = document.querySelector(`input[name="quiz_q${i}"]:checked`)?.value || '';
+      return {selected: selected, correct: q.answer};
+    });
+    fetch('/api/quiz/submit', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({topic: _quizTopic, roadmap_id: roadmapId ? parseInt(roadmapId) : null, answers: answers})
+    })
+    .then(r => r.json())
+    .then(data => {
+      const body = document.getElementById('quiz-modal-body');
+      const footer = document.getElementById('quiz-modal-footer');
+      if (footer) footer.style.display = 'none';
+      const score = data.score;
+      const correct = Math.round((score / 100) * _quizQuestions.length);
+      body.innerHTML = `<div class="text-center py-4">
+        <div class="fs-1 mb-2">${score >= 80 ? '🎉' : score >= 50 ? '👍' : '📚'}</div>
+        <h4 class="fw-bold mb-1">${score}%</h4>
+        <p class="text-muted">${correct}/${_quizQuestions.length} correct</p>
+        <p class="small text-muted">${score >= 80 ? 'Excellent work!' : score >= 50 ? 'Good effort — keep going!' : 'Review this topic to strengthen your understanding.'}</p>
+      </div>`;
+      // Record behavior event
+      if (roadmapId) {
+        fetch('/api/behavior/event', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({roadmap_id: parseInt(roadmapId), topic: _quizTopic, event_type: 'quiz_completed', payload: {score: score}})
+        });
+      }
+    });
+  });
+
+  checkPersonalizationState();
 })();
 </script>
 {% endblock %}

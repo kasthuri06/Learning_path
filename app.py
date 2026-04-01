@@ -30,6 +30,9 @@ from flask import (
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from generator import generate_roadmap
+from personalization_engine import (
+    Behavior_Tracker, Personalization_Engine, Recommendation_Service, reorder_roadmap
+)
 
 # Optional Google OAuth
 try:
@@ -181,6 +184,52 @@ def init_db() -> None:
                 difficulty TEXT,
                 UNIQUE(user_id, roadmap_id, topic, resource_url)
             );
+            CREATE TABLE IF NOT EXISTS behavior_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                roadmap_id INTEGER NOT NULL,
+                topic TEXT NOT NULL,
+                event_type TEXT NOT NULL,
+                payload_json TEXT,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            );
+            CREATE TABLE IF NOT EXISTS user_learning_profiles (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER UNIQUE NOT NULL,
+                profile_json TEXT NOT NULL,
+                computed_at TEXT NOT NULL,
+                stale INTEGER NOT NULL DEFAULT 0,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            );
+            CREATE TABLE IF NOT EXISTS quiz_results (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                roadmap_id INTEGER NOT NULL,
+                topic TEXT NOT NULL,
+                score REAL NOT NULL,
+                taken_at TEXT NOT NULL,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            );
+            CREATE TABLE IF NOT EXISTS pace_suggestions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                roadmap_id INTEGER NOT NULL,
+                suggested_weekly_hours INTEGER NOT NULL,
+                reason TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                dismissed INTEGER NOT NULL DEFAULT 0,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            );
+            CREATE TABLE IF NOT EXISTS user_preferences (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                preference_key TEXT NOT NULL,
+                preference_value TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                UNIQUE(user_id, preference_key),
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            );
         """)
         conn.commit()
         for table, col, sql in [
@@ -209,6 +258,10 @@ def init_db() -> None:
             conn.execute("CREATE INDEX IF NOT EXISTS idx_comments_roadmap ON comments(roadmap_id)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_topic_tags_user ON topic_tags(user_id, roadmap_id, topic)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_resource_meta_user ON resource_meta(user_id, roadmap_id, topic)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_behavior_events_user_topic ON behavior_events(user_id, roadmap_id, topic)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_quiz_results_user ON quiz_results(user_id, roadmap_id, topic)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_pace_suggestions_user ON pace_suggestions(user_id, roadmap_id, dismissed)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_user_preferences_user ON user_preferences(user_id, preference_key)")
             conn.commit()
         except sqlite3.OperationalError:
             pass
@@ -1835,6 +1888,234 @@ def profile():
         badges=badges,
         total_minutes=total_minutes,
     )
+
+
+# -----------------------------------------------------------------------------
+# Personalization API routes
+# -----------------------------------------------------------------------------
+
+
+@app.route("/api/behavior/event", methods=["POST"])
+@require_login
+def api_behavior_event():
+    data = request.get_json(silent=True) or {}
+    required = {"roadmap_id", "topic", "event_type"}
+    if not required.issubset(data.keys()):
+        return jsonify({"error": "Missing required fields"}), 400
+    conn = get_db()
+    tracker = Behavior_Tracker()
+    tracker.record_event(
+        conn,
+        user_id=session["user_id"],
+        roadmap_id=int(data["roadmap_id"]),
+        topic=str(data["topic"]),
+        event_type=str(data["event_type"]),
+        payload=data.get("payload", {}),
+    )
+    return jsonify({"ok": True})
+
+
+@app.route("/api/recommendations")
+@require_login
+def api_recommendations():
+    user_id = session["user_id"]
+    conn = get_db()
+    # Get all active roadmaps for user
+    rows = conn.execute(
+        "SELECT id FROM user_roadmap WHERE user_id = ? AND archived = 0",
+        (user_id,)
+    ).fetchall()
+    if not rows:
+        return jsonify([])
+
+    svc = Recommendation_Service()
+    engine = Personalization_Engine()
+    all_recs = []
+    for (roadmap_id,) in rows:
+        recs = svc.get_recommendations(conn, user_id, roadmap_id)
+        all_recs.extend(recs)
+
+    # Sort all recs by score descending, take top 5
+    all_recs.sort(key=lambda r: r.score, reverse=True)
+    top_recs = all_recs[:5]
+
+    # Get profile summary for dashboard insights
+    profile = engine.get_or_refresh_profile(conn, user_id)
+    profile_summary = {
+        "preferred_style": profile.preferred_style,
+        "pace": round(profile.pace, 2),
+        "engagement_history": [
+            round(sig.engagement, 2)
+            for sig in list(profile.topic_signals.values())[-4:]
+        ] if profile.topic_signals else [],
+    }
+
+    result = [
+        {
+            "topic": r.topic,
+            "roadmap_id": r.roadmap_id,
+            "path_name": r.path_name,
+            "score": r.score,
+            "explanation": r.explanation,
+        }
+        for r in top_recs
+    ]
+    return jsonify({"recommendations": result, "profile_summary": profile_summary})
+
+
+@app.route("/api/quiz/generate", methods=["POST"])
+@require_login
+def api_quiz_generate():
+    data = request.get_json(silent=True) or {}
+    topic = data.get("topic", "")
+    roadmap_id = data.get("roadmap_id")
+    if not topic:
+        return jsonify({"error": "topic required"}), 400
+
+    conn = get_db()
+    engine = Personalization_Engine()
+    profile = engine.get_or_refresh_profile(conn, session["user_id"])
+
+    pace = profile.pace
+    if pace < 1.5:
+        level = "beginner"
+    elif pace < 3.0:
+        level = "intermediate"
+    else:
+        level = "advanced"
+
+    prompt = (
+        f'Generate a 3-question multiple-choice quiz for the topic "{topic}" '
+        f'at {level} level. Return ONLY valid JSON with no extra text:\n'
+        '{"questions": [{"q": "...", "options": ["A","B","C","D"], "answer": "A"}]}'
+    )
+
+    try:
+        from generator import _groq_chat
+        raw = _groq_chat([{"role": "user", "content": prompt}])
+        import re
+        json_match = re.search(r'\{.*\}', raw, re.DOTALL)
+        if json_match:
+            quiz_data = json.loads(json_match.group())
+            return jsonify(quiz_data)
+        return jsonify({"questions": [], "skipped": True})
+    except Exception as e:
+        app.logger.error("Quiz generation failed: %s", e)
+        return jsonify({"questions": [], "skipped": True})
+
+
+@app.route("/api/quiz/submit", methods=["POST"])
+@require_login
+def api_quiz_submit():
+    data = request.get_json(silent=True) or {}
+    topic = data.get("topic", "")
+    roadmap_id = data.get("roadmap_id")
+    answers = data.get("answers", [])   # list of {"selected": "A", "correct": "A"}
+
+    if not topic or not answers:
+        return jsonify({"ok": True, "score": None})
+
+    correct = sum(1 for a in answers if a.get("selected") == a.get("correct"))
+    score = round((correct / len(answers)) * 100, 1)
+
+    conn = get_db()
+    user_id = session["user_id"]
+    taken_at = datetime.utcnow().isoformat()
+
+    try:
+        conn.execute(
+            "INSERT INTO quiz_results (user_id, roadmap_id, topic, score, taken_at) VALUES (?, ?, ?, ?, ?)",
+            (user_id, roadmap_id, topic, score, taken_at)
+        )
+        conn.commit()
+    except sqlite3.Error as e:
+        app.logger.error("Quiz submit DB error: %s", e)
+
+    # Mark profile stale
+    engine = Personalization_Engine()
+    engine.mark_stale(conn, user_id)
+
+    return jsonify({"ok": True, "score": score})
+
+
+@app.route("/api/pace/suggestion")
+@require_login
+def api_pace_suggestion_get():
+    user_id = session["user_id"]
+    roadmap_id = request.args.get("roadmap_id", type=int)
+    if not roadmap_id:
+        return jsonify(None)
+    conn = get_db()
+    # Trigger computation
+    engine = Personalization_Engine()
+    engine.compute_pace_suggestion(conn, user_id, roadmap_id)
+    # Return active suggestion
+    row = conn.execute(
+        "SELECT id, suggested_weekly_hours, reason FROM pace_suggestions WHERE user_id=? AND roadmap_id=? AND dismissed=0 ORDER BY created_at DESC LIMIT 1",
+        (user_id, roadmap_id)
+    ).fetchone()
+    if not row:
+        return jsonify(None)
+    return jsonify({"id": row[0], "suggested_weekly_hours": row[1], "reason": row[2]})
+
+
+@app.route("/api/pace/suggestion/respond", methods=["POST"])
+@require_login
+def api_pace_suggestion_respond():
+    data = request.get_json(silent=True) or {}
+    suggestion_id = data.get("id")
+    action = data.get("action")  # "accept" or "dismiss"
+    if not suggestion_id or action not in ("accept", "dismiss"):
+        return jsonify({"error": "Invalid request"}), 400
+
+    conn = get_db()
+    user_id = session["user_id"]
+
+    if action == "accept":
+        row = conn.execute(
+            "SELECT roadmap_id, suggested_weekly_hours FROM pace_suggestions WHERE id=? AND user_id=?",
+            (suggestion_id, user_id)
+        ).fetchone()
+        if row:
+            conn.execute(
+                "UPDATE user_roadmap SET weekly_hours=? WHERE id=? AND user_id=?",
+                (row[1], row[0], user_id)
+            )
+
+    conn.execute(
+        "UPDATE pace_suggestions SET dismissed=1 WHERE id=? AND user_id=?",
+        (suggestion_id, user_id)
+    )
+    conn.commit()
+    return jsonify({"ok": True})
+
+
+@app.route("/api/preferences", methods=["POST"])
+@require_login
+def api_preferences():
+    data = request.get_json(silent=True) or {}
+    key = data.get("key", "")
+    value = data.get("value", "")
+    if not key:
+        return jsonify({"error": "key required"}), 400
+
+    conn = get_db()
+    user_id = session["user_id"]
+    updated_at = datetime.utcnow().isoformat()
+
+    try:
+        conn.execute(
+            """INSERT INTO user_preferences (user_id, preference_key, preference_value, updated_at)
+               VALUES (?, ?, ?, ?)
+               ON CONFLICT(user_id, preference_key) DO UPDATE SET preference_value=excluded.preference_value, updated_at=excluded.updated_at""",
+            (user_id, key, str(value), updated_at)
+        )
+        conn.commit()
+    except sqlite3.Error as e:
+        app.logger.error("Preferences update error: %s", e)
+        return jsonify({"error": "DB error"}), 500
+
+    return jsonify({"ok": True})
 
 
 # -----------------------------------------------------------------------------
