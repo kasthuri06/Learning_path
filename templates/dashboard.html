@@ -179,25 +179,18 @@
   <div class="col-lg-6">
     <div class="dash-card h-100">
       <div class="dash-card-header">
-        <span><i class="fas fa-lightbulb text-warning me-2"></i>Next Best Topics</span>
-        <a href="{{ url_for('roadmap') }}" class="btn btn-xs btn-ghost">View All</a>
-      </div>
-      {% if next_topics %}
-      {% for t in next_topics %}
-      <a href="{{ url_for('roadmap', roadmap_id=t.roadmap_id) }}" class="insight-row">
-        <i class="fas fa-play-circle text-primary"></i>
-        <div class="flex-grow-1 min-w-0">
-          <div class="fw-semibold text-truncate">{{ t.topic }}</div>
-          <small class="text-muted">{{ t.path_name }}</small>
+        <span><i class="fas fa-robot text-primary me-2"></i>Recommended for You</span>
+        <div class="d-flex align-items-center gap-2">
+          <label class="d-flex align-items-center gap-1 small text-muted" style="cursor:pointer">
+            <input type="checkbox" id="personalization-toggle" checked style="cursor:pointer"> AI
+          </label>
         </div>
-        <i class="fas fa-chevron-right text-muted small"></i>
-      </a>
-      {% endfor %}
-      {% else %}
-      <div class="text-center py-4 text-muted">
-        <i class="fas fa-brain fs-2 mb-2 d-block opacity-50"></i>Complete topics to get recommendations
       </div>
-      {% endif %}
+      <div id="recommendations-panel">
+        <div class="text-center py-4 text-muted">
+          <i class="fas fa-spinner fa-spin fs-2 mb-2 d-block opacity-50"></i>Loading recommendations...
+        </div>
+      </div>
     </div>
   </div>
   <div class="col-lg-6">
@@ -223,6 +216,38 @@
         <i class="fas fa-check-circle fs-2 mb-2 d-block text-success opacity-75"></i>All caught up!
       </div>
       {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Learning Insights -->
+<div class="row g-3 mb-4">
+  <div class="col-12">
+    <div class="dash-card">
+      <div class="dash-card-header">
+        <span><i class="fas fa-brain text-purple me-2"></i>Learning Insights</span>
+      </div>
+      <div id="learning-insights-panel" class="p-3">
+        <div class="text-center text-muted py-3">
+          <i class="fas fa-chart-line opacity-50 me-2"></i>Complete more topics to unlock insights.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Pace Suggestion -->
+<div id="pace-suggestion-card" class="mb-4" style="display:none">
+  <div class="dash-card border border-warning" style="border-color:rgba(245,158,11,.4)!important">
+    <div class="dash-card-header">
+      <span><i class="fas fa-tachometer-alt text-warning me-2"></i>Pace Suggestion</span>
+    </div>
+    <div class="p-3">
+      <p id="pace-suggestion-reason" class="mb-3 text-muted small"></p>
+      <div class="d-flex gap-2">
+        <button id="pace-accept-btn" class="btn btn-sm btn-warning rounded-pill px-3">Accept</button>
+        <button id="pace-dismiss-btn" class="btn btn-sm btn-ghost rounded-pill px-3">Dismiss</button>
+      </div>
     </div>
   </div>
 </div>
@@ -484,5 +509,128 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 });
+
+// ---- AI Personalization ----
+let _activePaceSuggestionId = null;
+
+function fetchRecommendations() {
+  fetch('/api/recommendations')
+    .then(r => r.json())
+    .then(data => {
+      const panel = document.getElementById('recommendations-panel');
+      const insightsPanel = document.getElementById('learning-insights-panel');
+      if (!panel) return;
+
+      const recs = data.recommendations || [];
+      const profile = data.profile_summary || {};
+
+      // Render recommendations
+      if (!recs.length) {
+        panel.innerHTML = '<div class="text-center py-4 text-muted"><i class="fas fa-brain fs-2 mb-2 d-block opacity-50"></i>Complete more topics to unlock personalized recommendations.</div>';
+      } else {
+        panel.innerHTML = recs.map(r => `
+          <a href="/roadmap/${r.roadmap_id}#topic-${encodeURIComponent(r.topic)}" class="insight-row" title="${r.explanation}">
+            <i class="fas fa-star text-warning"></i>
+            <div class="flex-grow-1 min-w-0">
+              <div class="fw-semibold text-truncate">${r.topic}</div>
+              <small class="text-muted">${r.path_name} · ${Math.round(r.score * 100)}% match</small>
+            </div>
+            <i class="fas fa-chevron-right text-muted small"></i>
+          </a>`).join('');
+      }
+
+      // Render learning insights
+      if (insightsPanel && (profile.preferred_style || profile.pace)) {
+        const styleIcon = {'visual':'eye','practical':'tools','theoretical':'book','balanced':'balance-scale'}[profile.preferred_style] || 'brain';
+        const engHistory = profile.engagement_history || [];
+        insightsPanel.innerHTML = `
+          <div class="d-flex flex-wrap gap-4 align-items-center">
+            <div class="text-center">
+              <div class="small text-muted mb-1">Learning Style</div>
+              <div class="fw-bold"><i class="fas fa-${styleIcon} me-1 text-primary"></i>${profile.preferred_style || 'balanced'}</div>
+            </div>
+            <div class="text-center">
+              <div class="small text-muted mb-1">Pace</div>
+              <div class="fw-bold"><i class="fas fa-tachometer-alt me-1 text-success"></i>${profile.pace || 0} topics/week</div>
+            </div>
+            ${engHistory.length ? `<div class="text-center flex-grow-1">
+              <div class="small text-muted mb-1">Engagement (last 4 topics)</div>
+              <canvas id="engagement-sparkline" height="40" style="max-width:200px"></canvas>
+            </div>` : ''}
+          </div>`;
+        if (engHistory.length && typeof Chart !== 'undefined') {
+          const ctx = document.getElementById('engagement-sparkline');
+          if (ctx) {
+            new Chart(ctx, {
+              type: 'line',
+              data: {
+                labels: engHistory.map((_, i) => `T${i+1}`),
+                datasets: [{ data: engHistory, borderColor: '#6366f1', backgroundColor: 'rgba(99,102,241,.15)', fill: true, tension: 0.4, pointRadius: 3 }]
+              },
+              options: { responsive: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false, min: 0, max: 1 } } }
+            });
+          }
+        }
+      }
+    })
+    .catch(() => {
+      const panel = document.getElementById('recommendations-panel');
+      if (panel) panel.innerHTML = '<div class="text-center py-4 text-muted">Could not load recommendations.</div>';
+    });
+}
+
+// Fetch pace suggestion for first active roadmap
+function fetchPaceSuggestion() {
+  const firstPath = document.querySelector('.archive-btn');
+  if (!firstPath) return;
+  const roadmapId = firstPath.dataset.roadmapId;
+  if (!roadmapId) return;
+  fetch(`/api/pace/suggestion?roadmap_id=${roadmapId}`)
+    .then(r => r.json())
+    .then(data => {
+      if (!data) return;
+      _activePaceSuggestionId = data.id;
+      const card = document.getElementById('pace-suggestion-card');
+      const reason = document.getElementById('pace-suggestion-reason');
+      if (card && reason) {
+        reason.textContent = data.reason;
+        card.style.display = '';
+      }
+    });
+}
+
+document.getElementById('personalization-toggle')?.addEventListener('change', function() {
+  fetch('/api/preferences', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({key: 'personalization_enabled', value: this.checked ? '1' : '0'})
+  });
+  if (this.checked) fetchRecommendations();
+  else {
+    const panel = document.getElementById('recommendations-panel');
+    if (panel) panel.innerHTML = '<div class="text-center py-4 text-muted">Personalization is disabled.</div>';
+  }
+});
+
+document.getElementById('pace-accept-btn')?.addEventListener('click', function() {
+  if (!_activePaceSuggestionId) return;
+  fetch('/api/pace/suggestion/respond', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({id: _activePaceSuggestionId, action: 'accept'})
+  }).then(() => { document.getElementById('pace-suggestion-card').style.display = 'none'; });
+});
+
+document.getElementById('pace-dismiss-btn')?.addEventListener('click', function() {
+  if (!_activePaceSuggestionId) return;
+  fetch('/api/pace/suggestion/respond', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({id: _activePaceSuggestionId, action: 'dismiss'})
+  }).then(() => { document.getElementById('pace-suggestion-card').style.display = 'none'; });
+});
+
+// Initial load + refresh every 5 minutes
+fetchRecommendations();
+fetchPaceSuggestion();
+setInterval(fetchRecommendations, 5 * 60 * 1000);
 </script>
 {% endblock %}

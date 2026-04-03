@@ -64,3 +64,87 @@
   if (sendBtn) sendBtn.addEventListener('click', sendMessage);
   if (inputEl) inputEl.addEventListener('keydown', function (e) { if (e.key === 'Enter') sendMessage(); });
 })();
+
+/* ---- AI Personalization: Behavior Event Tracking ---- */
+(function () {
+  /**
+   * recordBehaviorEvent — thin wrapper around POST /api/behavior/event
+   * Silently fires and forgets; errors are logged but never thrown.
+   */
+  function recordBehaviorEvent(eventType, topic, roadmapId, payload) {
+    if (!topic || !roadmapId) return;
+    fetch('/api/behavior/event', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        event_type: eventType,
+        topic: topic,
+        roadmap_id: parseInt(roadmapId),
+        payload: payload || {}
+      })
+    }).catch(function (e) { console.warn('recordBehaviorEvent failed:', e); });
+  }
+
+  // Hook: topic_view — fire when a roadmap-week card scrolls into view
+  if ('IntersectionObserver' in window) {
+    var viewedTopics = new Set();
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        var card = entry.target;
+        var topic = card.querySelector('.week-title')?.textContent.trim();
+        var roadmapId = card.querySelector('[data-roadmap-id]')?.dataset.roadmapId;
+        if (topic && roadmapId && !viewedTopics.has(topic)) {
+          viewedTopics.add(topic);
+          recordBehaviorEvent('topic_view', topic, roadmapId, {});
+        }
+      });
+    }, { threshold: 0.4 });
+
+    document.querySelectorAll('.roadmap-week').forEach(function (card) {
+      observer.observe(card);
+    });
+  }
+
+  // Hook: session_start / session_end — wire into existing timer buttons
+  document.addEventListener('click', function (e) {
+    var startBtn = e.target.closest('.timer-start-btn');
+    var stopBtn = e.target.closest('.timer-stop-btn');
+
+    if (startBtn) {
+      var topic = startBtn.dataset.topic;
+      var roadmapId = startBtn.dataset.roadmapId;
+      recordBehaviorEvent('session_start', topic, roadmapId, { ts: Date.now() });
+    }
+
+    if (stopBtn) {
+      var topic = stopBtn.dataset.topic;
+      // timer-stop-btn doesn't always have roadmap-id; find it from the card
+      var card = stopBtn.closest('.roadmap-week');
+      var roadmapId = card?.querySelector('[data-roadmap-id]')?.dataset.roadmapId;
+      recordBehaviorEvent('session_end', topic, roadmapId, { ts: Date.now() });
+    }
+  });
+
+  // Hook: resource_complete — wire into existing resource-checkbox change
+  document.addEventListener('change', function (e) {
+    var cb = e.target.closest('.resource-checkbox');
+    if (!cb || !cb.checked) return;
+    var topic = cb.dataset.topic;
+    var roadmapId = cb.dataset.roadmapId;
+    var url = cb.dataset.url;
+    recordBehaviorEvent('resource_complete', topic, roadmapId, { resource_url: url });
+  });
+
+  // Hook: note_added — fire when milestone notes textarea loses focus with content
+  document.addEventListener('blur', function (e) {
+    var ta = e.target.closest('.milestone-notes-input');
+    if (!ta || !ta.value.trim()) return;
+    var topic = ta.dataset.topic;
+    var roadmapId = ta.dataset.roadmapId;
+    recordBehaviorEvent('note_added', topic, roadmapId, {});
+  }, true);
+
+  // Expose globally for use in inline scripts if needed
+  window.recordBehaviorEvent = recordBehaviorEvent;
+})();
