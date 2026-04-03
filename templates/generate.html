@@ -1,380 +1,181 @@
 {% extends "base.html" %}
-{% block title %}Generate Learning Path - AI Learning Platform{% endblock %}
+{% block title %}Generate Learning Path – AI Learning Platform{% endblock %}
 {% block content %}
 
-<!-- Hero -->
-<div class="gen-hero mb-4">
-  <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
-    <div>
-      <h1 class="gen-title mb-1">
-        <i class="fas fa-sparkles me-2"></i>AI Path Generator
-      </h1>
-      <p class="text-muted mb-0">Create your personalized learning roadmap powered by Groq AI.</p>
-    </div>
-    <div class="gen-ai-badge">
-      <i class="fas fa-robot text-primary me-2"></i>
-      <span class="fw-semibold">Groq LLM</span>
-      <span class="gen-dot"></span>
-    </div>
-  </div>
-</div>
-
-{% if error %}
-<div class="gen-alert mb-4">
-  <i class="fas fa-exclamation-triangle text-danger me-2"></i>
-  <div><strong>Error:</strong> {{ error }}</div>
-</div>
-{% endif %}
-
-<!-- Form Card -->
-<div class="gen-card mb-5">
-  <form method="post" action="{{ url_for('generate') }}" id="generate-form" novalidate>
-
-    <!-- Path Name -->
-    <div class="gen-field">
-      <label class="gen-label" for="path_name">
-        <i class="fas fa-edit text-primary me-2"></i>Path Name
-      </label>
-      <input type="text" class="gen-input" id="path_name" name="path_name"
-             placeholder="e.g. Full-Stack Developer Mastery" required>
-    </div>
-
-    <!-- Domain + Level -->
-    <div class="gen-row">
-      <div class="gen-field">
-        <label class="gen-label" for="domain">
-          <i class="fas fa-layer-group text-success me-2"></i>Domain
-        </label>
-        <select class="gen-input gen-select" id="domain" name="domain" required>
-          <option value="">Choose your domainâ€¦</option>
-          {% for d in domains %}
-          <option value="{{ d }}">{{ d }}</option>
-          {% endfor %}
-        </select>
+<div class="gen-chat-page">
+  <div class="gen-header mb-4">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+      <div>
+        <h1 class="gen-title mb-1"><i class="fas fa-sparkles me-2"></i>AI Path Generator</h1>
+        <p class="text-muted mb-0">Chat with AI to build your personalized learning roadmap.</p>
       </div>
-      <div class="gen-field">
-        <label class="gen-label" for="current_level">
-          <i class="fas fa-signal text-info me-2"></i>Current Level
-        </label>
-        <select class="gen-input gen-select" id="current_level" name="current_level" required>
-          <option value="">Select your levelâ€¦</option>
-          <option value="Beginner">Beginner</option>
-          <option value="Intermediate">Intermediate</option>
-          <option value="Advanced">Advanced</option>
-        </select>
-      </div>
-    </div>
-
-    <!-- Target Role -->
-    <div class="gen-field">
-      <label class="gen-label" for="target_role">
-        <i class="fas fa-user-tie text-warning me-2"></i>Target Role
-      </label>
-      <input type="text" class="gen-input" id="target_role" name="target_role"
-             placeholder="e.g. ML Engineer, Full-Stack Developer, Data Scientist" required>
-      <span class="gen-hint"><i class="fas fa-lightbulb me-1"></i>Be specific â€” helps AI create a better roadmap</span>
-    </div>
-
-
-    <!-- Learning Style -->
-    <div class="gen-field">
-      <label class="gen-label"><i class="fas fa-brain text-purple me-2"></i>Learning Style</label>
-      <div class="gen-style-grid">
-        <label class="gen-style-opt">
-          <input type="radio" name="learning_style" value="practical" checked>
-          <span><i class="fas fa-code me-1"></i>Hands-on</span>
-        </label>
-        <label class="gen-style-opt">
-          <input type="radio" name="learning_style" value="visual">
-          <span><i class="fas fa-play-circle me-1"></i>Visual</span>
-        </label>
-        <label class="gen-style-opt">
-          <input type="radio" name="learning_style" value="theoretical">
-          <span><i class="fas fa-book me-1"></i>Theory</span>
-        </label>
-        <label class="gen-style-opt">
-          <input type="radio" name="learning_style" value="balanced">
-          <span><i class="fas fa-balance-scale me-1"></i>Balanced</span>
-        </label>
-      </div>
-      <span class="gen-hint">Shapes how tasks and resources are selected for you</span>
-    </div>
-    <!-- Weekly Hours -->
-    <div class="gen-field">
-      <label class="gen-label" for="weekly_study_hours">
-        <i class="fas fa-clock text-secondary me-2"></i>Weekly Study Hours
-      </label>
-      <div class="gen-slider-wrap">
-        <input type="range" class="gen-slider" id="weekly_study_hours" name="weekly_study_hours"
-               min="1" max="40" value="10" step="1">
-        <div class="gen-slider-meta">
-          <span class="text-muted small">1h/week</span>
-          <span class="gen-hours-val" id="hours_display">10 hours/week</span>
-          <span class="text-muted small">40h/week</span>
-        </div>
-        <div class="text-center mt-1">
-          <small class="text-muted" id="duration_estimate">~3â€“6 months to complete</small>
-        </div>
-      </div>
-    </div>
-
-    <!-- Known Skills -->
-    <div class="gen-field">
-      <label class="gen-label" for="known_skills">
-        <i class="fas fa-check-square text-success me-2"></i>Skills to Skip <span class="text-muted fw-normal">(comma separated)</span>
-      </label>
-      <textarea class="gen-input gen-textarea" id="known_skills" name="known_skills" rows="3"
-                placeholder="Python, HTML/CSS, Git, Basic MLâ€¦ (AI will skip these)"></textarea>
-      <span class="gen-hint"><i class="fas fa-info-circle me-1"></i>List skills you already know well</span>
-    </div>
-
-    <!-- Goal Date (optional) -->
-    <div class="gen-field">
-      <label class="gen-label" for="goal_date">
-        <i class="fas fa-calendar-alt text-danger me-2"></i>Target Completion Date <span class="text-muted fw-normal">(optional)</span>
-      </label>
-      <input type="date" class="gen-input" id="goal_date" name="goal_date">
-    </div>
-
-    <!-- Submit -->
-    <div class="gen-submit">
-      <button type="submit" class="gen-btn" id="generate-btn">
-        <i class="fas fa-brain me-2"></i>Generate My Personalized Roadmap
-      </button>
-      <p class="text-muted small mt-2 mb-0">
-        <i class="fas fa-shield-alt me-1"></i>Secure Â· Private Â· AI-Optimized
-      </p>
-    </div>
-
-  </form>
-</div>
-
-<!-- Progress Modal -->
-<div class="modal fade" id="progressModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content gen-modal">
-      <div class="modal-body p-4 text-center">
-        <div class="gen-thinking mb-3">
-          <i class="fas fa-robot"></i>
-          <i class="fas fa-brain"></i>
-          <i class="fas fa-magic"></i>
-        </div>
-        <h5 class="fw-bold mb-1">AI is crafting your pathâ€¦</h5>
-        <p class="text-muted small mb-4">This may take up to 30 seconds</p>
-        <div class="gen-stages">
-          <div class="gen-stage active" data-stage="1">
-            <div class="gen-stage-icon"><i class="fas fa-search"></i></div>
-            <div class="gen-stage-text">
-              <div class="fw-semibold">Analyzing your goals</div>
-              <small class="text-muted">Understanding role requirements</small>
-            </div>
-          </div>
-          <div class="gen-stage" data-stage="2">
-            <div class="gen-stage-icon"><i class="fas fa-brain"></i></div>
-            <div class="gen-stage-text">
-              <div class="fw-semibold">AI Processing</div>
-              <small class="text-muted">Generating optimal sequence</small>
-            </div>
-          </div>
-          <div class="gen-stage" data-stage="3">
-            <div class="gen-stage-icon"><i class="fas fa-book-open"></i></div>
-            <div class="gen-stage-text">
-              <div class="fw-semibold">Curating Resources</div>
-              <small class="text-muted">Finding best courses & projects</small>
-            </div>
-          </div>
-          <div class="gen-stage" data-stage="4">
-            <div class="gen-stage-icon"><i class="fas fa-check-circle"></i></div>
-            <div class="gen-stage-text">
-              <div class="fw-semibold">Finalizing Roadmap</div>
-              <small class="text-muted">Optimizing timeline & milestones</small>
-            </div>
-          </div>
-        </div>
+      <div class="gen-ai-badge">
+        <i class="fas fa-robot text-primary me-2"></i>
+        <span class="fw-semibold">Groq LLM</span>
+        <span class="gen-dot"></span>
       </div>
     </div>
   </div>
-</div>
 
-<!-- Emerging Roles -->
-{% if emerging_roles %}
-<div class="gen-card mb-4">
-  <div class="gen-card-header">
-    <span><i class="fas fa-chart-line text-success me-2"></i>2026 Emerging Roles</span>
-    <span class="text-muted small">Click Generate to auto-fill</span>
+  <div class="gen-chat-card">
+    <div class="gen-chat-messages" id="chat-messages">
+      <div class="gen-msg gen-msg-ai">
+        <div class="gen-msg-avatar"><i class="fas fa-robot"></i></div>
+        <div class="gen-msg-bubble">
+          Hey! I am your AI learning path designer. I will ask you a few quick questions to build a fully personalized roadmap just for you.<br><br>
+          Let us start — <strong>what domain do you want to learn?</strong> (e.g. AI, Data Science, Web Development, Cloud Computing, Cybersecurity, or anything else)
+        </div>
+      </div>
+    </div>
+    <div class="gen-generating d-none" id="gen-generating">
+      <div class="gen-spinner"></div>
+      <span>AI is generating your personalized roadmap...</span>
+    </div>
+    <div class="gen-chat-input-row" id="chat-input-row">
+      <input type="text" id="chat-input" class="gen-chat-input" placeholder="Type your answer..." autocomplete="off">
+      <button class="gen-send-btn" id="send-btn"><i class="fas fa-paper-plane"></i></button>
+    </div>
   </div>
-  <div class="table-responsive">
-    <table class="gen-table">
-      <thead>
-        <tr>
-          <th>Role</th>
-          <th>Key Skills</th>
-          <th>Salary Range</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for r in emerging_roles %}
-        <tr>
-          <td>
-            <div class="fw-semibold">{{ r.role }}</div>
-            <small class="text-muted">{{ r.level }}</small>
-          </td>
-          <td>
-            <div class="gen-tags">
-              {% for skill in r.skills.split(', ')[:4] %}
-              <span class="gen-tag">{{ skill }}</span>
-              {% endfor %}
-            </div>
-          </td>
-          <td><span class="gen-salary">{{ r.salary_range }}</span></td>
-          <td>
-            <button class="gen-quick-btn quick-generate" data-role="{{ r.role }}">
-              <i class="fas fa-magic me-1"></i>Use
-            </button>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+
+  <div class="gen-chips mt-3" id="suggestion-chips">
+    <span class="gen-chip" data-val="AI / Machine Learning">AI / ML</span>
+    <span class="gen-chip" data-val="Data Science">Data Science</span>
+    <span class="gen-chip" data-val="Web Development">Web Dev</span>
+    <span class="gen-chip" data-val="Cloud Computing">Cloud</span>
+    <span class="gen-chip" data-val="Cybersecurity">Cybersecurity</span>
+    <span class="gen-chip" data-val="Beginner">Beginner</span>
+    <span class="gen-chip" data-val="Intermediate">Intermediate</span>
+    <span class="gen-chip" data-val="Advanced">Advanced</span>
+    <span class="gen-chip" data-val="none">No prior skills</span>
+    <span class="gen-chip" data-val="practical">Hands-on learner</span>
+    <span class="gen-chip" data-val="balanced">Balanced style</span>
   </div>
 </div>
-{% endif %}
 
 {% endblock %}
 {% block scripts %}
 <style>
-:root {
-  --glass-bg: rgba(255,255,255,.06);
-  --glass-border: rgba(255,255,255,.1);
-  --primary-gradient: linear-gradient(135deg,#667eea,#764ba2);
-  --success-gradient: linear-gradient(135deg,#4facfe,#00f2fe);
-}
-
-/* Hero */
-.gen-hero { padding: 1.5rem 0 .5rem; }
-.gen-title { font-size: clamp(1.5rem,3vw,2.2rem); font-weight:800; letter-spacing:-.02em; background:var(--primary-gradient); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
-.gen-ai-badge { display:inline-flex; align-items:center; padding:.5rem 1rem; border-radius:99px; background:rgba(99,102,241,.12); border:1px solid rgba(99,102,241,.25); font-size:.85rem; }
-.gen-dot { width:8px; height:8px; border-radius:50%; background:#10b981; margin-left:.6rem; animation:pulse-dot 2s infinite; }
-@keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:.4} }
-
-/* Alert */
-.gen-alert { display:flex; align-items:flex-start; gap:.75rem; padding:1rem 1.25rem; border-radius:12px; background:rgba(239,68,68,.1); border:1px solid rgba(239,68,68,.25); }
-
-/* Card */
-.gen-card { background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.09); border-radius:20px; overflow:hidden; }
-.gen-card-header { display:flex; align-items:center; justify-content:space-between; padding:.9rem 1.5rem; border-bottom:1px solid rgba(255,255,255,.07); font-weight:600; }
-
-/* Form layout */
-.gen-card form { padding: 2rem; display:flex; flex-direction:column; gap:1.5rem; }
-.gen-row { display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; }
-@media(max-width:640px){ .gen-row { grid-template-columns:1fr; } }
-
-/* Field */
-.gen-field { display:flex; flex-direction:column; gap:.5rem; }
-.gen-label { font-size:.9rem; font-weight:600; color:#e2e8f0; }
-.gen-hint { font-size:.78rem; color:#64748b; }
-
-/* Inputs */
-.gen-input {
-  width:100%; padding:.7rem 1rem; border-radius:10px;
-  background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.12);
-  color:#f8fafc; font-size:.95rem; outline:none;
-  transition:border-color .2s, background .2s;
-  appearance:none; -webkit-appearance:none;
-}
-.gen-input:focus { border-color:#6366f1; background:rgba(99,102,241,.1); }
-.gen-input::placeholder { color:#64748b; }
-.gen-select { cursor:pointer; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 1rem center; padding-right:2.5rem; }
-.gen-select option { background:#1e293b; color:#f8fafc; }
-.gen-textarea { resize:vertical; min-height:80px; }
-
-/* Slider */
-.gen-slider-wrap { display:flex; flex-direction:column; gap:.5rem; padding:1.1rem 1.25rem; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.09); border-radius:12px; }
-.gen-slider { width:100%; accent-color:#6366f1; height:6px; cursor:pointer; }
-.gen-slider-meta { display:flex; justify-content:space-between; align-items:center; }
-.gen-hours-val { font-size:1rem; font-weight:700; color:#6366f1; }
-
-/* Learning style */
-.gen-style-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:.6rem; }
-@media(max-width:500px){ .gen-style-grid { grid-template-columns:repeat(2,1fr); } }
-.gen-style-opt { cursor:pointer; }
-.gen-style-opt input { display:none; }
-.gen-style-opt span { display:flex; align-items:center; justify-content:center; gap:.4rem; padding:.55rem .75rem; border-radius:10px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); font-size:.85rem; font-weight:500; color:#94a3b8; transition:all .2s; }
-.gen-style-opt input:checked + span { background:rgba(99,102,241,.2); border-color:#6366f1; color:#a5b4fc; font-weight:600; }
-.gen-style-opt:hover span { background:rgba(255,255,255,.08); color:#e2e8f0; }
-
-/* Submit */
-.gen-submit { display:flex; flex-direction:column; align-items:center; padding-top:.5rem; }
-.gen-btn { display:inline-flex; align-items:center; gap:.5rem; padding:.85rem 2.5rem; border-radius:99px; background:linear-gradient(135deg,#6366f1,#8b5cf6); border:none; color:#fff; font-size:1rem; font-weight:700; cursor:pointer; transition:transform .2s, box-shadow .2s; box-shadow:0 4px 20px rgba(99,102,241,.4); }
-.gen-btn:hover { transform:translateY(-2px); box-shadow:0 8px 28px rgba(99,102,241,.5); }
-.gen-btn:active { transform:translateY(0); }
-
-/* Modal */
-.gen-modal { background:#0f172a; border:1px solid rgba(255,255,255,.1); border-radius:20px; color:#f8fafc; }
-.gen-thinking { display:flex; justify-content:center; gap:1rem; font-size:2rem; }
-.gen-thinking i { animation:bounce-icon 1.4s infinite; }
-.gen-thinking i:nth-child(2) { animation-delay:.15s; }
-.gen-thinking i:nth-child(3) { animation-delay:.3s; }
-@keyframes bounce-icon { 0%,100%{transform:translateY(0)} 40%{transform:translateY(-12px)} }
-.gen-stages { display:flex; flex-direction:column; gap:1rem; text-align:left; }
-.gen-stage { display:flex; align-items:center; gap:1rem; padding:.75rem 1rem; border-radius:12px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06); opacity:.45; transition:all .3s; }
-.gen-stage.active { opacity:1; border-color:rgba(99,102,241,.4); background:rgba(99,102,241,.08); }
-.gen-stage-icon { width:38px; height:38px; border-radius:10px; background:rgba(255,255,255,.07); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-.gen-stage.active .gen-stage-icon { background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; }
-
-/* Table */
-.gen-table { width:100%; border-collapse:collapse; }
-.gen-table th { padding:.75rem 1.25rem; font-size:.78rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#64748b; border-bottom:1px solid rgba(255,255,255,.07); }
-.gen-table td { padding:.85rem 1.25rem; border-bottom:1px solid rgba(255,255,255,.05); vertical-align:middle; }
-.gen-table tr:last-child td { border-bottom:none; }
-.gen-table tr:hover td { background:rgba(255,255,255,.03); }
-.gen-tags { display:flex; flex-wrap:wrap; gap:.35rem; }
-.gen-tag { font-size:.72rem; padding:.2rem .55rem; border-radius:99px; background:rgba(99,102,241,.18); color:#818cf8; font-weight:500; }
-.gen-salary { font-weight:700; color:#10b981; font-size:.9rem; }
-.gen-quick-btn { padding:.35rem .85rem; border-radius:99px; background:rgba(99,102,241,.15); border:1px solid rgba(99,102,241,.3); color:#818cf8; font-size:.8rem; font-weight:600; cursor:pointer; transition:background .2s; }
-.gen-quick-btn:hover { background:rgba(99,102,241,.3); }
+:root { --primary-gradient: linear-gradient(135deg,#667eea,#764ba2); }
+.gen-chat-page { max-width:760px;margin:0 auto; }
+.gen-title { font-size:clamp(1.4rem,3vw,2rem);font-weight:800;letter-spacing:-.02em;background:var(--primary-gradient);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent; }
+.gen-ai-badge { display:inline-flex;align-items:center;padding:.5rem 1rem;border-radius:99px;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.25);font-size:.85rem; }
+.gen-dot { width:8px;height:8px;border-radius:50%;background:#10b981;margin-left:.6rem;animation:pulse-dot 2s infinite; }
+@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.4}}
+.gen-chat-card { background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:20px;overflow:hidden;display:flex;flex-direction:column; }
+.gen-chat-messages { padding:1.5rem;display:flex;flex-direction:column;gap:1rem;min-height:340px;max-height:480px;overflow-y:auto; }
+.gen-chat-messages::-webkit-scrollbar { width:4px; }
+.gen-chat-messages::-webkit-scrollbar-thumb { background:rgba(99,102,241,.4);border-radius:4px; }
+.gen-msg { display:flex;gap:.75rem;align-items:flex-start; }
+.gen-msg-ai { flex-direction:row; }
+.gen-msg-user { flex-direction:row-reverse; }
+.gen-msg-avatar { width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:.9rem; }
+.gen-msg-ai .gen-msg-avatar { background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff; }
+.gen-msg-user .gen-msg-avatar { background:rgba(16,185,129,.2);color:#10b981; }
+.gen-msg-bubble { padding:.75rem 1rem;border-radius:16px;font-size:.9rem;line-height:1.6;max-width:85%; }
+.gen-msg-ai .gen-msg-bubble { background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.2);color:#e2e8f0; }
+.gen-msg-user .gen-msg-bubble { background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.25);color:#d1fae5; }
+.gen-msg-bubble.typing { display:flex;gap:4px;align-items:center;padding:.75rem 1.1rem; }
+.gen-msg-bubble.typing span { width:7px;height:7px;border-radius:50%;background:#6366f1;animation:typing-dot 1.2s infinite; }
+.gen-msg-bubble.typing span:nth-child(2){animation-delay:.2s}
+.gen-msg-bubble.typing span:nth-child(3){animation-delay:.4s}
+@keyframes typing-dot{0%,80%,100%{transform:scale(.8);opacity:.5}40%{transform:scale(1.1);opacity:1}}
+.gen-generating { display:flex;align-items:center;gap:.75rem;padding:1rem 1.5rem;border-top:1px solid rgba(255,255,255,.07);color:#94a3b8;font-size:.85rem; }
+.gen-spinner { width:18px;height:18px;border:2px solid rgba(99,102,241,.3);border-top-color:#6366f1;border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0; }
+@keyframes spin{to{transform:rotate(360deg)}}
+.gen-chat-input-row { display:flex;gap:.75rem;padding:1rem 1.25rem;border-top:1px solid rgba(255,255,255,.07); }
+.gen-chat-input { flex:1;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:.65rem 1rem;color:#f8fafc;font-size:.95rem;outline:none;transition:border-color .2s; }
+.gen-chat-input:focus { border-color:#6366f1; }
+.gen-chat-input::placeholder { color:#64748b; }
+.gen-send-btn { width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .2s,box-shadow .2s;flex-shrink:0; }
+.gen-send-btn:hover { transform:translateY(-2px);box-shadow:0 6px 20px rgba(99,102,241,.4); }
+.gen-send-btn:disabled { opacity:.5;cursor:not-allowed;transform:none; }
+.gen-chips { display:flex;flex-wrap:wrap;gap:.5rem; }
+.gen-chip { padding:.3rem .85rem;border-radius:99px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);font-size:.8rem;color:#94a3b8;cursor:pointer;transition:all .2s; }
+.gen-chip:hover { background:rgba(99,102,241,.2);border-color:#6366f1;color:#a5b4fc; }
 </style>
-
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-  const slider = document.getElementById('weekly_study_hours');
-  const hoursDisplay = document.getElementById('hours_display');
-  const durationEl = document.getElementById('duration_estimate');
-  const form = document.getElementById('generate-form');
+(function () {
+  const messagesEl = document.getElementById('chat-messages');
+  const inputEl = document.getElementById('chat-input');
+  const sendBtn = document.getElementById('send-btn');
+  const generatingEl = document.getElementById('gen-generating');
+  const inputRow = document.getElementById('chat-input-row');
+  const chips = document.getElementById('suggestion-chips');
+  let chatContext = {};
+  let isWaiting = false;
 
-  slider.addEventListener('input', function () {
-    const h = parseInt(this.value);
-    hoursDisplay.textContent = `${h} hour${h !== 1 ? 's' : ''}/week`;
-    const weeks = Math.round(120 / h);
-    const months = Math.round(weeks / 4);
-    durationEl.textContent = `~${months < 1 ? 1 : months}â€“${months + 2} months to complete`;
-  });
+  function scrollBottom() { messagesEl.scrollTop = messagesEl.scrollHeight; }
 
-  form.addEventListener('submit', function (e) {
-    const required = form.querySelectorAll('[required]');
-    let valid = true;
-    required.forEach(el => { if (!el.value.trim()) { el.style.borderColor = '#ef4444'; valid = false; } else { el.style.borderColor = ''; } });
-    if (!valid) { e.preventDefault(); return; }
-    const modal = new bootstrap.Modal(document.getElementById('progressModal'));
-    modal.show();
-    const stages = document.querySelectorAll('.gen-stage');
-    let i = 0;
-    const t = setInterval(() => {
-      stages.forEach(s => s.classList.remove('active'));
-      if (i < stages.length) { stages[i].classList.add('active'); i++; }
-      else clearInterval(t);
-    }, 1500);
-  });
+  function addMessage(text, isUser) {
+    const msg = document.createElement('div');
+    msg.className = 'gen-msg ' + (isUser ? 'gen-msg-user' : 'gen-msg-ai');
+    const avatar = document.createElement('div');
+    avatar.className = 'gen-msg-avatar';
+    avatar.innerHTML = isUser ? '<i class="fas fa-user"></i>' : '<i class="fas fa-robot"></i>';
+    const bubble = document.createElement('div');
+    bubble.className = 'gen-msg-bubble';
+    bubble.innerHTML = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+    msg.appendChild(avatar);
+    msg.appendChild(bubble);
+    messagesEl.appendChild(msg);
+    scrollBottom();
+  }
 
-  document.querySelectorAll('.quick-generate').forEach(btn => {
-    btn.addEventListener('click', function () {
-      const role = this.dataset.role;
-      document.getElementById('target_role').value = role;
-      document.getElementById('path_name').value = `${role} Roadmap`;
-      document.getElementById('generate-btn').click();
-    });
+  function addTypingIndicator() {
+    const msg = document.createElement('div');
+    msg.className = 'gen-msg gen-msg-ai';
+    msg.id = 'typing-indicator';
+    msg.innerHTML = '<div class="gen-msg-avatar"><i class="fas fa-robot"></i></div><div class="gen-msg-bubble typing"><span></span><span></span><span></span></div>';
+    messagesEl.appendChild(msg);
+    scrollBottom();
+  }
+
+  function removeTypingIndicator() { document.getElementById('typing-indicator')?.remove(); }
+
+  function setWaiting(val) {
+    isWaiting = val;
+    sendBtn.disabled = val;
+    inputEl.disabled = val;
+  }
+
+  async function sendMessage(text) {
+    if (!text || isWaiting) return;
+    addMessage(text, true);
+    inputEl.value = '';
+    setWaiting(true);
+    addTypingIndicator();
+    try {
+      const resp = await fetch('/api/generate_chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text, context: chatContext }),
+      });
+      const data = await resp.json();
+      removeTypingIndicator();
+      chatContext = data.context || chatContext;
+      if (data.done && data.roadmap_id) {
+        inputRow.classList.add('d-none');
+        chips.classList.add('d-none');
+        generatingEl.classList.remove('d-none');
+        addMessage(data.reply, false);
+        setTimeout(() => { window.location.href = '/roadmap/' + data.roadmap_id; }, 2000);
+      } else {
+        addMessage(data.reply, false);
+        setWaiting(false);
+      }
+    } catch (e) {
+      removeTypingIndicator();
+      addMessage('Something went wrong. Please try again.', false);
+      setWaiting(false);
+    }
+  }
+
+  sendBtn.addEventListener('click', () => sendMessage(inputEl.value.trim()));
+  inputEl.addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(inputEl.value.trim()); });
+  document.querySelectorAll('.gen-chip').forEach(chip => {
+    chip.addEventListener('click', function () { inputEl.value = this.dataset.val; inputEl.focus(); });
   });
-});
+  scrollBottom();
+})();
 </script>
 {% endblock %}

@@ -361,7 +361,7 @@
       </span>
       <span class="meta-badge">
         <i class="fas fa-clock"></i>
-        Generated: {{ 'now'|strftime('%B %d, %Y') }}
+        Generated: {{ now_str }}
       </span>
     </div>
   </div>
@@ -445,7 +445,7 @@
       </div>
       <div class="col-md-6 text-md-end">
         <p class="mb-0 small">
-          Printed: {{ 'now'|strftime('%B %d, %Y %I:%M %p IST') }}
+          Printed: {{ now_full }}
           <i class="fas fa-print ms-2"></i>
         </p>
       </div>

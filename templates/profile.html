@@ -268,16 +268,17 @@ document.addEventListener('DOMContentLoaded', function () {
     // Month label row — one span per week column
     const monthLabelRow = document.createElement('div');
     monthLabelRow.className = 'heatmap-month-labels';
+    monthLabelRow.style.cssText = 'display:flex';
     // left offset to align with day-label column
     const dayLabelSpacer = document.createElement('span');
-    dayLabelSpacer.style.cssText = 'display:inline-block;width:28px;flex-shrink:0';
+    dayLabelSpacer.style.cssText = 'width:28px;flex-shrink:0';
     monthLabelRow.appendChild(dayLabelSpacer);
 
     let lastLabelMonth = -1;
     weeks.forEach((week, wi) => {
       const span = document.createElement('span');
       span.className = 'hm-month-label';
-      span.style.cssText = 'display:inline-block;width:16px;flex-shrink:0;overflow:visible;white-space:nowrap';
+      span.style.cssText = 'flex-shrink:0;width:16px;overflow:visible;white-space:nowrap';
       // Show month name on the first week where the 1st of a new month falls
       const firstOfMonth = week.find(d => d.getDate() === 1);
       if (firstOfMonth && firstOfMonth.getMonth() !== lastLabelMonth) {

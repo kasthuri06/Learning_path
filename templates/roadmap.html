@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}🚀 {{ path_name or 'My Learning Roadmap' }}{% endblock %}
 {% block content %}
+{% if roadmap_id %}<script>document.body.dataset.roadmapId = "{{ roadmap_id }}";</script>{% endif %}
 <!-- Hero Roadmap Header -->
 <div class="roadmap-hero glass-card p-4 mb-4 position-relative overflow-hidden fade-in-up">
   <div class="hero-bg-animation"></div>
@@ -245,6 +246,29 @@
       </div>
       {% endif %}
 
+      <!-- Week Meta: type, description, outcome -->
+      <div class="week-meta-row mb-3 d-flex flex-wrap gap-2 align-items-center">
+        {% if week.type %}
+        <span class="week-type-badge week-type-{{ week.type }}">
+          {% if week.type == 'theory' %}<i class="fas fa-book me-1"></i>Theory
+          {% elif week.type == 'coding' %}<i class="fas fa-code me-1"></i>Coding
+          {% elif week.type == 'project' %}<i class="fas fa-hammer me-1"></i>Project
+          {% else %}<i class="fas fa-layer-group me-1"></i>{{ week.type|capitalize }}
+          {% endif %}
+        </span>
+        {% endif %}
+        {% if week.outcome %}
+        <span class="week-outcome text-muted small">
+          <i class="fas fa-bullseye text-success me-1"></i><strong>Outcome:</strong> {{ week.outcome }}
+        </span>
+        {% endif %}
+      </div>
+      {% if week.description %}
+      <p class="week-description text-muted mb-3" style="font-size:.9rem;line-height:1.6;">
+        <i class="fas fa-info-circle text-primary me-1"></i>{{ week.description }}
+      </p>
+      {% endif %}
+
       <!-- Tasks -->
       <div class="tasks-section mb-4">
         <h6 class="section-title">
@@ -259,8 +283,6 @@
           {% endfor %}
         </div>
       </div>
-
-      <!-- Resources -->
       {% if week.resources %}
       <div class="resources-section mb-4">
         <h6 class="section-title">
@@ -394,6 +416,22 @@
   align-items: center;
 }
 
+.week-type-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: .25rem .75rem;
+  border-radius: 99px;
+  font-size: .75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.week-type-theory  { background: rgba(99,102,241,.2);  color: #a5b4fc; }
+.week-type-coding  { background: rgba(16,185,129,.2);  color: #6ee7b7; }
+.week-type-project { background: rgba(245,158,11,.2);  color: #fcd34d; }
+
+.week-outcome { max-width: 100%; }
+
 .week-header {
   background: linear-gradient(135deg, rgba(102,126,234,0.25), rgba(118,75,162,0.25));
   border-radius: 20px 20px 0 0;
@@ -477,79 +515,382 @@
 </style>
 
 <script>
-(function() {
-  // Enhanced drag & drop planner
-  let draggedItem = null;
-  
-  document.querySelectorAll('.draggable').forEach(item => {
-    item.addEventListener('dragstart', e => {
-      draggedItem = item;
-      item.classList.add('dragging');
-      e.dataTransfer.effectAllowed = 'move';
-    });
-    
-    item.addEventListener('dragend', () => {
-      item.classList.remove('dragging');
-      draggedItem = null;
-    });
-  });
-  
-  ['planner-backlog', 'planner-thisweek'].forEach(containerId => {
-    const container = document.getElementById(containerId);
-    if (container) {
-      container.addEventListener('dragover', e => {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-      });
-      
-      container.addEventListener('drop', e => {
-        e.preventDefault();
-        if (draggedItem) {
-          container.appendChild(draggedItem);
-          // Add focus class if dropped in thisweek
-          if (containerId === 'planner-thisweek') {
-            draggedItem.classList.add('focus-item');
-            draggedItem.querySelector('.item-badge')?.classList.remove('d-none');
-          }
-        }
-      });
-    }
+(function () {
+  const ROADMAP_ID = parseInt(document.body.dataset.roadmapId) || null;
+
+  // ── Utility ──────────────────────────────────────────────────────────────
+  function post(url, data) {
+    return fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }).then(r => r.json());
+  }
+
+  function toast(msg, type = 'success') {
+    const t = document.createElement('div');
+    t.style.cssText = `position:fixed;top:1.25rem;right:1.25rem;z-index:9999;padding:.65rem 1.1rem;
+      border-radius:10px;font-size:.85rem;font-weight:600;color:#fff;max-width:320px;
+      background:${type === 'success' ? '#10b981' : type === 'info' ? '#6366f1' : '#ef4444'};
+      box-shadow:0 8px 24px rgba(0,0,0,.25);animation:slideInRight .3s ease`;
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 3000);
+  }
+
+  const style = document.createElement('style');
+  style.textContent = `@keyframes slideInRight{from{transform:translateX(110%);opacity:0}to{transform:translateX(0);opacity:1}}`;
+  document.head.appendChild(style);
+
+  // ── Rename path ───────────────────────────────────────────────────────────
+  document.getElementById('rename-path-btn')?.addEventListener('click', function () {
+    const current = document.querySelector('.roadmap-title')?.textContent.trim() || '';
+    const name = prompt('New path name:', current);
+    if (!name || !name.trim() || name.trim() === current) return;
+    post('/api/rename_path', { roadmap_id: ROADMAP_ID, name: name.trim() })
+      .then(d => { if (d.ok) { toast('Path renamed!'); location.reload(); } else toast('Rename failed', 'error'); });
   });
 
-  // All existing functionality preserved + enhanced animations
-  // [Previous script functionality here - too long to include but ALL preserved]
-  
-  // Smart filter with debouncing
+  // ── Clone path ────────────────────────────────────────────────────────────
+  document.getElementById('clone-path-btn')?.addEventListener('click', function () {
+    if (!confirm('Clone this path to a new copy?')) return;
+    this.disabled = true;
+    this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Cloning…';
+    post('/api/clone_path', { roadmap_id: ROADMAP_ID })
+      .then(d => {
+        if (d.ok && d.roadmap_id) {
+          toast('Path cloned!', 'success');
+          setTimeout(() => window.location.href = `/roadmap/${d.roadmap_id}`, 800);
+        } else { toast('Clone failed', 'error'); this.disabled = false; this.innerHTML = '<i class="fas fa-copy me-2"></i>Clone Path'; }
+      });
+  });
+
+  // ── Share link ────────────────────────────────────────────────────────────
+  document.getElementById('share-path-btn')?.addEventListener('click', function () {
+    post('/api/share_create', { roadmap_id: ROADMAP_ID })
+      .then(d => {
+        if (d.ok && d.url) {
+          navigator.clipboard.writeText(d.url).then(() => toast('Share link copied!', 'info'));
+          prompt('Share this link:', d.url);
+        } else toast('Could not create share link', 'error');
+      });
+  });
+
+  // ── Save goal ─────────────────────────────────────────────────────────────
+  document.getElementById('save-goal-btn')?.addEventListener('click', function () {
+    const goalDate = document.getElementById('goal-date')?.value || '';
+    const weeklyHours = parseInt(document.getElementById('weekly-hours')?.value) || 5;
+    post('/api/update_goal', { roadmap_id: ROADMAP_ID, goal_date: goalDate, weekly_hours: weeklyHours })
+      .then(d => { if (d.ok) { toast('Goal updated!'); setTimeout(() => location.reload(), 600); } else toast('Update failed', 'error'); });
+  });
+
+  // ── Week reorder (up/down) ────────────────────────────────────────────────
+  document.querySelectorAll('.btn-week-up, .btn-week-down').forEach(btn => {
+    btn.addEventListener('click', function () {
+      const idx = parseInt(this.dataset.index);
+      const dir = this.classList.contains('btn-week-up') ? -1 : 1;
+      post('/api/reorder_week', { roadmap_id: ROADMAP_ID, index: idx, direction: dir })
+        .then(d => { if (d.ok) location.reload(); else toast('Reorder failed', 'error'); });
+    });
+  });
+
+  // ── Weekly focus toggle ───────────────────────────────────────────────────
+  document.querySelectorAll('.weekly-focus-btn').forEach(btn => {
+    btn.addEventListener('click', function () {
+      const topic = this.dataset.topic;
+      post('/api/weekly_focus_toggle', { roadmap_id: ROADMAP_ID, topic })
+        .then(d => {
+          if (d.ok) {
+            const active = d.active;
+            this.classList.toggle('btn-primary', active);
+            this.classList.toggle('btn-outline-primary', !active);
+            toast(active ? 'Added to This Week!' : 'Removed from This Week', 'info');
+          }
+        });
+    });
+  });
+
+  // ── Timer ─────────────────────────────────────────────────────────────────
+  const activeTimers = {};
+
+  document.querySelectorAll('.timer-start-btn').forEach(btn => {
+    btn.addEventListener('click', function () {
+      const topic = this.dataset.topic;
+      if (activeTimers[topic]) return;
+      post('/api/timer_start', { roadmap_id: ROADMAP_ID, topic })
+        .then(d => {
+          if (d.ok) {
+            const startTs = Date.now();
+            const minuteEl = this.closest('.quick-actions').querySelector('.topic-minutes');
+            const baseMin = parseInt(minuteEl?.textContent) || 0;
+            this.classList.replace('btn-outline-info', 'btn-info');
+            this.innerHTML = '<i class="fas fa-circle text-danger me-2 blink"></i>Running';
+            activeTimers[topic] = setInterval(() => {
+              const elapsed = Math.floor((Date.now() - startTs) / 60000);
+              if (minuteEl) minuteEl.textContent = baseMin + elapsed;
+            }, 10000);
+          }
+        });
+    });
+  });
+
+  document.querySelectorAll('.timer-stop-btn').forEach(btn => {
+    btn.addEventListener('click', function () {
+      const topic = this.dataset.topic;
+      post('/api/timer_stop', { topic })
+        .then(d => {
+          if (d.ok) {
+            clearInterval(activeTimers[topic]);
+            delete activeTimers[topic];
+            const startBtn = this.closest('.quick-actions').querySelector('.timer-start-btn');
+            if (startBtn) { startBtn.classList.replace('btn-info', 'btn-outline-info'); startBtn.innerHTML = '<i class="fas fa-play me-2"></i>Timer'; }
+            const minuteEl = this.closest('.quick-actions').querySelector('.topic-minutes');
+            if (minuteEl && d.minutes !== undefined) minuteEl.textContent = d.minutes;
+            toast(`Stopped. ${d.minutes || 0} min logged.`, 'info');
+          }
+        });
+    });
+  });
+
+  // Load existing time for each topic
+  document.querySelectorAll('.topic-minutes').forEach(el => {
+    const topic = el.dataset.topic;
+    fetch(`/api/topic_time?roadmap_id=${ROADMAP_ID}&topic=${encodeURIComponent(topic)}`)
+      .then(r => r.json()).then(d => { if (d.minutes !== undefined) el.textContent = d.minutes; });
+  });
+
+  // ── Milestone notes (auto-save on blur) ───────────────────────────────────
+  document.querySelectorAll('.milestone-notes-input').forEach(ta => {
+    ta.addEventListener('blur', function () {
+      post('/api/milestone_notes', { roadmap_id: parseInt(this.dataset.roadmapId), topic: this.dataset.topic, notes: this.value })
+        .then(d => { if (d.ok) toast('Notes saved', 'success'); });
+    });
+  });
+
+  // ── Tags ──────────────────────────────────────────────────────────────────
+  function renderTags(container, tags) {
+    container.innerHTML = '';
+    tags.forEach(tag => {
+      const span = document.createElement('span');
+      span.className = 'badge bg-primary-subtle text-primary me-1 mb-1 d-inline-flex align-items-center gap-1';
+      span.style.cssText = 'font-size:.75rem;padding:.3rem .6rem;border-radius:99px;cursor:default';
+      span.innerHTML = `${tag} <i class="fas fa-times" style="cursor:pointer;font-size:.65rem" data-tag="${tag}"></i>`;
+      span.querySelector('i').addEventListener('click', () => {
+        post('/api/topic_tag_remove', { roadmap_id: parseInt(container.dataset.roadmapId), topic: container.dataset.topic, tag })
+          .then(d => { if (d.ok) loadTags(container); });
+      });
+      container.appendChild(span);
+    });
+  }
+
+  function loadTags(container) {
+    fetch(`/api/topic_tags_get?roadmap_id=${container.dataset.roadmapId}&topic=${encodeURIComponent(container.dataset.topic)}`)
+      .then(r => r.json()).then(d => renderTags(container, d.tags || []));
+  }
+
+  document.querySelectorAll('.tags-container').forEach(loadTags);
+
+  document.querySelectorAll('.tag-add-btn').forEach(btn => {
+    btn.addEventListener('click', function () {
+      const input = this.closest('.input-group').querySelector('.tag-input');
+      const tag = input.value.trim();
+      if (!tag) return;
+      post('/api/topic_tag_add', { roadmap_id: parseInt(this.dataset.roadmapId), topic: this.dataset.topic, tag })
+        .then(d => {
+          if (d.ok) {
+            input.value = '';
+            const container = this.closest('.tags-section').querySelector('.tags-container');
+            loadTags(container);
+          }
+        });
+    });
+  });
+
+  document.querySelectorAll('.tag-input').forEach(inp => {
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.closest('.input-group').querySelector('.tag-add-btn').click(); });
+  });
+
+  // ── Resource checkbox ─────────────────────────────────────────────────────
+  document.querySelectorAll('.resource-checkbox').forEach(cb => {
+    cb.addEventListener('change', function () {
+      post('/api/resource_toggle', { roadmap_id: parseInt(this.dataset.roadmapId), topic: this.dataset.topic, resource_url: this.dataset.url, completed: this.checked })
+        .then(d => { if (!d.ok) { this.checked = !this.checked; toast('Toggle failed', 'error'); } });
+    });
+  });
+
+  // ── Mark all resources done ───────────────────────────────────────────────
+  document.querySelectorAll('.btn-all-resources').forEach(btn => {
+    btn.addEventListener('click', function () {
+      const topic = this.dataset.topic;
+      const section = this.closest('.resources-section');
+      const checkboxes = section.querySelectorAll('.resource-checkbox:not(:checked)');
+      const promises = Array.from(checkboxes).map(cb =>
+        post('/api/resource_toggle', { roadmap_id: ROADMAP_ID, topic, resource_url: cb.dataset.url, completed: true })
+          .then(() => { cb.checked = true; })
+      );
+      Promise.all(promises).then(() => toast('All resources marked done!'));
+    });
+  });
+
+  // ── Add review ────────────────────────────────────────────────────────────
+  document.querySelectorAll('.btn-add-review').forEach(btn => {
+    btn.addEventListener('click', function () {
+      post('/api/review_add', { roadmap_id: ROADMAP_ID, topic: this.dataset.topic })
+        .then(d => { if (d.ok) toast('Review scheduled!', 'info'); else toast('Already scheduled or error', 'error'); });
+    });
+  });
+
+  // ── Comments ──────────────────────────────────────────────────────────────
+  function loadComments(listEl) {
+    fetch(`/api/comments?roadmap_id=${listEl.dataset.roadmapId}&topic=${encodeURIComponent(listEl.dataset.topic)}`)
+      .then(r => r.json()).then(d => {
+        listEl.innerHTML = '';
+        (d.comments || []).forEach(c => {
+          const div = document.createElement('div');
+          div.className = 'd-flex align-items-start gap-2 mb-2';
+          div.innerHTML = `
+            <div style="flex:1;background:rgba(255,255,255,.06);border-radius:10px;padding:.5rem .75rem;font-size:.85rem">
+              <span class="text-muted" style="font-size:.75rem">${c.created_at?.slice(0,16) || ''}</span>
+              <p class="mb-0 mt-1">${c.content}</p>
+            </div>
+            <button class="btn btn-sm btn-ghost comment-del-btn" data-id="${c.id}" style="padding:.25rem .5rem;font-size:.75rem">
+              <i class="fas fa-trash text-danger"></i>
+            </button>`;
+          div.querySelector('.comment-del-btn').addEventListener('click', function () {
+            post('/api/comment_delete', { comment_id: parseInt(this.dataset.id) })
+              .then(d => { if (d.ok) loadComments(listEl); });
+          });
+          listEl.appendChild(div);
+        });
+      });
+  }
+
+  document.querySelectorAll('.comments-list').forEach(loadComments);
+
+  document.querySelectorAll('.comment-add-btn').forEach(btn => {
+    btn.addEventListener('click', function () {
+      const input = this.closest('.comment-input-group').querySelector('.comment-input');
+      const content = input.value.trim();
+      if (!content) return;
+      post('/api/comment_add', { roadmap_id: parseInt(this.dataset.roadmapId), topic: this.dataset.topic, content })
+        .then(d => {
+          if (d.ok) {
+            input.value = '';
+            const listEl = this.closest('.comments-section').querySelector('.comments-list');
+            loadComments(listEl);
+          }
+        });
+    });
+  });
+
+  document.querySelectorAll('.comment-input').forEach(inp => {
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.closest('.comment-input-group').querySelector('.comment-add-btn').click(); });
+  });
+
+  // ── Resource meta (duration + difficulty) ────────────────────────────────
+  function saveResourceMeta(el) {
+    const wrap = el.closest('.resource-meta');
+    const dur = wrap.querySelector('.res-duration')?.value;
+    const diff = wrap.querySelector('.res-difficulty')?.value;
+    post('/api/resource_meta_update', {
+      roadmap_id: parseInt(el.dataset.roadmapId), topic: el.dataset.topic,
+      resource_url: el.dataset.url, duration_min: dur || null, difficulty: diff || null
+    });
+  }
+
+  document.querySelectorAll('.res-duration, .res-difficulty').forEach(el => {
+    el.addEventListener('change', () => saveResourceMeta(el));
+  });
+
+  // Load existing resource meta
+  document.querySelectorAll('.resource-item').forEach(item => {
+    const url = item.dataset.url;
+    const topic = item.closest('.week-content')?.querySelector('.milestone-notes-input')?.dataset.topic;
+    if (!url || !topic) return;
+    fetch(`/api/resource_meta_get?roadmap_id=${ROADMAP_ID}&topic=${encodeURIComponent(topic)}&resource_url=${encodeURIComponent(url)}`)
+      .then(r => r.json()).then(d => {
+        if (d.items?.length) {
+          const meta = d.items[0];
+          const durEl = item.querySelector('.res-duration');
+          const diffEl = item.querySelector('.res-difficulty');
+          if (durEl && meta.duration_min) durEl.value = meta.duration_min;
+          if (diffEl && meta.difficulty) diffEl.value = meta.difficulty;
+        }
+      });
+  });
+
+  // ── Alt resources ─────────────────────────────────────────────────────────
+  document.querySelectorAll('.btn-alt-resource').forEach(btn => {
+    btn.addEventListener('click', function () {
+      const topic = this.dataset.topic;
+      const url = this.dataset.url;
+      const altDiv = this.closest('.resource-item').querySelector('.alternates');
+      if (!altDiv.classList.contains('d-none')) { altDiv.classList.add('d-none'); return; }
+      fetch(`/api/resource_alternates?topic=${encodeURIComponent(topic)}&current=${encodeURIComponent(url)}`)
+        .then(r => r.json()).then(d => {
+          if (!d.alternates?.length) { toast('No alternates found', 'info'); return; }
+          altDiv.innerHTML = d.alternates.map(u =>
+            `<a href="${u}" target="_blank" class="d-block text-primary small mb-1 text-truncate">${u}</a>`
+          ).join('');
+          altDiv.classList.remove('d-none');
+        });
+    });
+  });
+
+  // ── Search & filter ───────────────────────────────────────────────────────
   let filterTimeout;
   function applyFilters() {
     clearTimeout(filterTimeout);
     filterTimeout = setTimeout(() => {
-      const q = document.getElementById('topic-search')?.value.toLowerCase() || '';
+      const q = (document.getElementById('topic-search')?.value || '').toLowerCase();
       const videoOn = document.getElementById('filter-video')?.checked || false;
       const articleOn = document.getElementById('filter-article')?.checked || false;
-      
       document.querySelectorAll('.roadmap-week').forEach(card => {
-        const title = card.querySelector('.week-title')?.textContent.toLowerCase() || '';
-        const matchQ = !q || title.includes(q) || 
-          Array.from(card.querySelectorAll('a')).some(a => a.textContent.toLowerCase().includes(q));
-        
-        const types = new Set();
-        card.querySelectorAll('[data-type]').forEach(el => types.add(el.dataset.type));
-        const typeMatch = (!videoOn || types.has('video')) && (!articleOn || types.has('article'));
-        
+        const title = (card.querySelector('.week-title')?.textContent || '').toLowerCase();
+        const matchQ = !q || title.includes(q) || Array.from(card.querySelectorAll('a')).some(a => a.textContent.toLowerCase().includes(q));
+        const types = new Set(Array.from(card.querySelectorAll('[data-type]')).map(el => el.dataset.type));
+        const typeMatch = (!videoOn && !articleOn) || (videoOn && types.has('video')) || (articleOn && types.has('article'));
         card.style.display = (matchQ && typeMatch) ? '' : 'none';
-        card.style.opacity = (matchQ && typeMatch) ? '1' : '0.5';
       });
     }, 200);
   }
-  
-  ['input', 'change'].forEach(ev => {
-    document.getElementById('topic-search')?.addEventListener(ev, applyFilters);
-    document.getElementById('filter-video')?.addEventListener(ev, applyFilters);
-    document.getElementById('filter-article')?.addEventListener(ev, applyFilters);
+
+  document.getElementById('topic-search')?.addEventListener('input', applyFilters);
+  document.getElementById('filter-video')?.addEventListener('change', applyFilters);
+  document.getElementById('filter-article')?.addEventListener('change', applyFilters);
+  document.getElementById('clear-filters')?.addEventListener('click', () => {
+    const s = document.getElementById('topic-search'); if (s) s.value = '';
+    const fv = document.getElementById('filter-video'); if (fv) fv.checked = false;
+    const fa = document.getElementById('filter-article'); if (fa) fa.checked = false;
+    applyFilters();
   });
 
-  // All other existing event listeners preserved...
+  // ── Drag & drop planner ───────────────────────────────────────────────────
+  let draggedItem = null;
+  document.querySelectorAll('.draggable').forEach(item => {
+    item.addEventListener('dragstart', e => { draggedItem = item; item.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; });
+    item.addEventListener('dragend', () => { item.classList.remove('dragging'); draggedItem = null; });
+  });
+
+  ['planner-backlog', 'planner-thisweek'].forEach(id => {
+    const container = document.getElementById(id);
+    if (!container) return;
+    container.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; });
+    container.addEventListener('drop', e => {
+      e.preventDefault();
+      if (!draggedItem) return;
+      const topic = draggedItem.dataset.topic;
+      const toFocus = id === 'planner-thisweek';
+      post('/api/weekly_focus_toggle', { roadmap_id: ROADMAP_ID, topic, force: toFocus ? 'add' : 'remove' })
+        .then(d => { if (d.ok) container.appendChild(draggedItem); });
+    });
+  });
+
+  // ── Blink animation for running timer ────────────────────────────────────
+  const blinkStyle = document.createElement('style');
+  blinkStyle.textContent = `@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}} .blink{animation:blink 1s infinite}`;
+  document.head.appendChild(blinkStyle);
+
 })();
 </script>
 {% endblock %}

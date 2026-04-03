@@ -11,59 +11,46 @@
   </div>
 
   <!-- Selection Form -->
-  <div class="app-form-card glass-card mb-5 p-4">
-    <div class="row g-4 align-items-end">
+  <div class="app-form-card glass-card mb-4 p-4">
+    <form method="GET" action="{{ url_for('compare') }}">
+    <div class="row g-3 align-items-end">
       <div class="col-lg-5">
-        <label class="form-label fw-bold fs-5 mb-3 d-block">
+        <label class="form-label fw-semibold mb-2 d-block">
           <i class="fas fa-route text-primary me-2"></i>Path A
         </label>
-        <select class="form-select app-input h-100 shadow-lg" name="a" required>
-          <option value="">🎯 Choose your first learning path</option>
+        <select class="form-select" name="a" required>
+          <option value="">Choose your first learning path…</option>
           {% for p in paths %}
-          <option value="{{ p.id }}" {% if a == p.id %}selected{% endif %}>
-            {{ p.name }} 
-            <span class="badge bg-gradient ms-2 badge-gradient-a">
-              {{ p.progress_pct }}% 
-              <i class="fas fa-chart-line ms-1"></i>
-            </span>
-          </option>
+          <option value="{{ p.id }}" {% if a == p.id %}selected{% endif %}>{{ p.name }} ({{ p.progress_pct }}%)</option>
           {% endfor %}
         </select>
       </div>
-      <div class="col-lg-1 text-center py-3">
-        <div class="vs-divider">
-          <i class="fas fa-vs display-6 text-primary opacity-75"></i>
-        </div>
+      <div class="col-lg-1 text-center d-flex align-items-center justify-content-center" style="padding-bottom:.5rem">
+        <span class="fw-bold text-muted fs-5">VS</span>
       </div>
-      <div class="col-lg-5">
-        <label class="form-label fw-bold fs-5 mb-3 d-block">
+      <div class="col-lg-4">
+        <label class="form-label fw-semibold mb-2 d-block">
           <i class="fas fa-route text-success me-2"></i>Path B
         </label>
-        <select class="form-select app-input h-100 shadow-lg" name="b" required>
-          <option value="">🎯 Choose your second learning path</option>
+        <select class="form-select" name="b" required>
+          <option value="">Choose your second learning path…</option>
           {% for p in paths %}
-          <option value="{{ p.id }}" {% if b == p.id %}selected{% endif %}>
-            {{ p.name }}
-            <span class="badge bg-gradient ms-2 badge-gradient-b">
-              {{ p.progress_pct }}% 
-              <i class="fas fa-chart-line ms-1"></i>
-            </span>
-          </option>
+          <option value="{{ p.id }}" {% if b == p.id %}selected{% endif %}>{{ p.name }} ({{ p.progress_pct }}%)</option>
           {% endfor %}
         </select>
       </div>
-      <div class="col-lg-1">
-        <button class="btn app-btn-primary w-100 h-100 shadow-lg" type="submit" style="border-radius: 20px;">
-          <i class="fas fa-magic me-2"></i>
-          <span class="fw-bold">Compare Paths</span>
+      <div class="col-lg-2">
+        <button class="btn btn-primary w-100 rounded-pill" type="submit">
+          <i class="fas fa-balance-scale me-2"></i>Compare
         </button>
       </div>
     </div>
-    <div class="text-center mt-4">
-      <a class="btn btn-outline-primary btn-lg px-4 rounded-pill" href="{{ url_for('dashboard') }}">
+    <div class="text-center mt-3">
+      <a class="btn btn-outline-secondary btn-sm rounded-pill px-4" href="{{ url_for('dashboard') }}">
         <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
       </a>
     </div>
+    </form>
   </div>
 
   {% if result %}

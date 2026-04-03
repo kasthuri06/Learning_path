@@ -947,6 +947,7 @@ def dashboard():
     progress_pct = round(100 * completed_count / total_topics, 1) if total_topics else 0
     streak = get_streak(user_id)
     weekly_data = get_completions_per_week(user_id)
+    activity_heatmap = get_activity_heatmap(user_id, days=84)
     next_topics = get_next_best_topics(user_id, streak=streak)
     due_reviews = get_due_reviews(user_id)
     weekly_focus = get_weekly_focus(user_id)
@@ -972,6 +973,7 @@ def dashboard():
         progress_pct=progress_pct,
         streak=streak,
         weekly_data=weekly_data,
+        activity_heatmap=activity_heatmap,
         next_topics=next_topics,
         due_reviews=due_reviews,
         weekly_focus=weekly_focus,
@@ -983,16 +985,10 @@ def dashboard():
 @app.route("/generate", methods=["GET", "POST"])
 @require_login
 def generate():
-    """Generate Learning Path form; on POST save roadmap with name and redirect to roadmap/<id>."""
+    """Generate Learning Path — conversational AI interface (GET) or direct POST fallback."""
     if request.method == "GET":
-        domains = get_available_domains()
-        roles = []
-        try:
-            with open(APP_DIR / "data" / "emerging_roles.json", "r", encoding="utf-8") as f:
-                roles = json.load(f)
-        except Exception:
-            pass
-        return render_template("generate.html", emerging_roles=roles, domains=domains)
+        return render_template("generate.html")
+    # Legacy POST fallback (kept for compatibility)
     domain = request.form.get("domain", "AI").strip()
     current_level = request.form.get("current_level", "Beginner").strip()
     target_role = (request.form.get("target_role") or "").strip() or "Learner"
@@ -1004,35 +1000,16 @@ def generate():
     except ValueError:
         weekly_study_hours = 5
     goal_date = (request.form.get("goal_date") or "").strip()
-    if goal_date:
-        try:
-            datetime.fromisoformat(goal_date[:10])
-            goal_date = goal_date[:10]
-        except Exception:
-            goal_date = ""
     known_skills_raw = request.form.get("known_skills") or ""
     known_skills = [s.strip() for s in known_skills_raw.split(",") if s.strip()]
     try:
         roadmap = generate_roadmap(
-            domain=domain,
-            current_level=current_level,
-            weekly_study_hours=weekly_study_hours,
-            known_skills=known_skills,
-            target_role=target_role,
-            learning_style=learning_style,
-            goal_date=goal_date,
-            knowledge_base_path=str(APP_DIR / "knowledge_base.json"),
-            resources_path=str(APP_DIR / "resources.json"),
+            domain=domain, current_level=current_level,
+            weekly_study_hours=weekly_study_hours, known_skills=known_skills,
+            target_role=target_role, learning_style=learning_style, goal_date=goal_date,
         )
-    except (ValueError, FileNotFoundError) as e:
-        roles = []
-        try:
-            with open(APP_DIR / "data" / "emerging_roles.json", "r", encoding="utf-8") as f:
-                roles = json.load(f)
-        except Exception:
-            pass
-        domains = get_available_domains()
-        return render_template("generate.html", error=str(e), emerging_roles=roles, domains=domains)
+    except Exception as e:
+        return render_template("generate.html", error=str(e))
     with get_db() as conn:
         conn.execute(
             "INSERT INTO user_roadmap (user_id, created_at, roadmap_json, domain, name, target_role, weekly_hours, goal_date, archived) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)",
@@ -1040,9 +1017,96 @@ def generate():
         )
         conn.commit()
         roadmap_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
-    session["roadmap"] = roadmap
-    session["target_role"] = target_role
     return redirect(url_for("roadmap", roadmap_id=roadmap_id))
+
+
+@app.route("/api/generate_chat", methods=["POST"])
+@require_login
+def api_generate_chat():
+    """
+    Conversational roadmap generation.
+    The AI collects: domain, level, target_role, known_skills, weekly_hours, learning_style.
+    When all info is collected it generates and saves the roadmap, returning roadmap_id.
+    """
+    data = request.get_json() or {}
+    message = (data.get("message") or "").strip()
+    context = data.get("context") or {}
+
+    from generator import _groq_chat, generate_roadmap as gen_roadmap
+
+    SYSTEM = """You are an AI learning path assistant. Your job is to collect information from the user through friendly conversation to generate a personalized learning roadmap.
+
+You need to collect ALL of these (ask one or two at a time, naturally):
+1. domain (e.g. AI, Data Science, Web Development, Cloud Computing, Cybersecurity, etc.)
+2. current_level (Beginner / Intermediate / Advanced)
+3. target_role (specific job title they want, e.g. "MLOps Engineer", "Full-Stack Developer")
+4. known_skills (comma-separated skills they already know, can be "none")
+5. weekly_study_hours (number 1-40)
+6. learning_style (practical / visual / theoretical / balanced)
+
+Rules:
+- Be conversational and encouraging
+- Ask 1-2 questions at a time max
+- Once you have ALL 6 pieces of info, respond with ONLY this exact JSON (no other text):
+  READY:{"domain":"...","current_level":"...","target_role":"...","known_skills":"...","weekly_study_hours":10,"learning_style":"..."}
+- Do not generate the roadmap yourself — just collect the info and output the READY: JSON
+- If the user gives vague answers, ask for clarification
+- Keep responses short and friendly"""
+
+    history = context.get("history", [])
+    messages = [{"role": "system", "content": SYSTEM}]
+    messages.extend(history[-10:])
+    messages.append({"role": "user", "content": message})
+
+    try:
+        reply = _groq_chat(messages, temperature=0.7)
+    except Exception as e:
+        return jsonify({"reply": f"Sorry, AI error: {e}", "context": context, "done": False}), 200
+
+    new_history = history + [
+        {"role": "user", "content": message},
+        {"role": "assistant", "content": reply},
+    ]
+    context["history"] = new_history[-14:]
+
+    # Check if AI has collected all info
+    if reply.strip().startswith("READY:"):
+        try:
+            info_str = reply.strip()[6:].strip()
+            info = json.loads(info_str)
+            domain = info.get("domain", "AI")
+            current_level = info.get("current_level", "Beginner")
+            target_role = info.get("target_role", "Learner")
+            known_skills_raw = info.get("known_skills", "")
+            known_skills = [s.strip() for s in known_skills_raw.split(",") if s.strip() and s.strip().lower() != "none"]
+            weekly_study_hours = int(info.get("weekly_study_hours", 8))
+            learning_style = info.get("learning_style", "balanced")
+            path_name = f"{target_role} Roadmap"
+
+            roadmap = gen_roadmap(
+                domain=domain, current_level=current_level,
+                weekly_study_hours=weekly_study_hours, known_skills=known_skills,
+                target_role=target_role, learning_style=learning_style,
+            )
+
+            with get_db() as conn:
+                conn.execute(
+                    "INSERT INTO user_roadmap (user_id, created_at, roadmap_json, domain, name, target_role, weekly_hours, goal_date, archived) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)",
+                    (session["user_id"], datetime.utcnow().isoformat(), json.dumps(roadmap), domain, path_name, target_role, weekly_study_hours, None),
+                )
+                conn.commit()
+                roadmap_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+
+            return jsonify({
+                "reply": f"Your personalized roadmap is ready! Generating {len(roadmap)} weeks for **{target_role}**...",
+                "context": context,
+                "done": True,
+                "roadmap_id": roadmap_id,
+            })
+        except Exception as e:
+            return jsonify({"reply": f"I had trouble generating the roadmap: {e}. Let's try again.", "context": context, "done": False})
+
+    return jsonify({"reply": reply, "context": context, "done": False})
 
 
 @app.route("/roadmap")
@@ -1131,8 +1195,10 @@ def compare():
     a_completed = {c["topic"] for c in get_completed_topics(user_id, a_id)}
     b_completed = {c["topic"] for c in get_completed_topics(user_id, b_id)}
     result = {
-        "a": {"id": a_id, "name": a_row["name"] or ("Path " + str(a_id)), "total": len(a_set), "completed": len(a_set & a_completed)},
-        "b": {"id": b_id, "name": b_row["name"] or ("Path " + str(b_id)), "total": len(b_set), "completed": len(b_set & b_completed)},
+        "a": {"id": a_id, "name": a_row["name"] or ("Path " + str(a_id)), "total": len(a_set), "completed": len(a_set & a_completed),
+              "progress_pct": round(100 * len(a_set & a_completed) / len(a_set), 1) if a_set else 0},
+        "b": {"id": b_id, "name": b_row["name"] or ("Path " + str(b_id)), "total": len(b_set), "completed": len(b_set & b_completed),
+              "progress_pct": round(100 * len(b_set & b_completed) / len(b_set), 1) if b_set else 0},
         "only_a": only_a,
         "only_b": only_b,
         "common": common,
@@ -1183,7 +1249,9 @@ def print_roadmap(roadmap_id: int):
         roadmap = json.loads(row["roadmap_json"]) if row["roadmap_json"] else []
     except (json.JSONDecodeError, TypeError):
         roadmap = []
-    return render_template("print_roadmap.html", roadmap=roadmap, path_name=row["name"], target_role=row["target_role"])
+    return render_template("print_roadmap.html", roadmap=roadmap, path_name=row["name"], target_role=row["target_role"],
+                           now_str=datetime.utcnow().strftime("%B %d, %Y"),
+                           now_full=datetime.utcnow().strftime("%B %d, %Y %I:%M %p UTC"))
 
 
 @app.route("/share/<token>")
@@ -1327,7 +1395,9 @@ def print_reviews():
             (user_id,),
         ).fetchall()
     items = [{"path_name": (r["name"] or ("Path " + str(r["roadmap_id"]))), "roadmap_id": r["roadmap_id"], "topic": r["topic"], "due_date": r["due_date"], "completed": r["completed"]} for r in rows]
-    return render_template("print_reviews.html", items=items)
+    return render_template("print_reviews.html", items=items,
+                           now_str=datetime.utcnow().strftime("%B %d, %Y • %I:%M %p UTC"),
+                           now_full=datetime.utcnow().strftime("%B %d, %Y %I:%M %p UTC"))
 
 @app.route("/recap/weekly")
 @require_login

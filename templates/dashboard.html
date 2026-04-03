@@ -250,7 +250,7 @@
       <span><i class="fas fa-calendar-check text-warning me-2"></i>Activity Streak</span>
       <span class="text-muted small">Last 12 weeks</span>
     </div>
-    <div id="heatmap-container" class="heatmap-wrap" data-activity='{{ weekly_data | tojson }}'></div>
+    <div id="heatmap-container" class="heatmap-wrap" data-activity='{{ activity_heatmap | tojson }}'></div>
     <div class="heatmap-legend">
       <span class="text-muted small me-2">Less</span>
       <span class="hm-cell" style="background:rgba(99,102,241,.1)"></span>
@@ -391,16 +391,41 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  // Heatmap — build 12-week calendar from weekly_data
+  // Heatmap — build 12-week calendar from activity_heatmap (date-keyed)
   const hm = document.getElementById('heatmap-container');
   if (hm) {
-    const weeklyData = JSON.parse(hm.dataset.activity || '[]');
-    const countMap = {};
-    weeklyData.forEach(d => { countMap[d.week] = d.count; });
-    const maxVal = Math.max(1, ...Object.values(countMap));
-    const today = new Date();
+    const activityMap = JSON.parse(hm.dataset.activity || '{}');
+    const maxVal = Math.max(1, ...Object.values(activityMap).map(Number));
+
+    const toKey = (d) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    };
+
+    const todayLocal = new Date();
+    todayLocal.setHours(0, 0, 0, 0);
+
+    // Start 12 weeks ago, aligned to Sunday
+    const start = new Date(todayLocal);
+    start.setDate(todayLocal.getDate() - 84);
+    start.setDate(start.getDate() - start.getDay());
+
+    const weeks = [];
+    const cur = new Date(start);
+    while (cur <= todayLocal) {
+      const week = [];
+      for (let i = 0; i < 7; i++) {
+        week.push(new Date(cur));
+        cur.setDate(cur.getDate() + 1);
+      }
+      weeks.push(week);
+    }
+
     const grid = document.createElement('div');
     grid.className = 'heatmap-grid';
+
     // Day labels column
     const dayLabels = ['', 'Mon', '', 'Wed', '', 'Fri', ''];
     const lblCol = document.createElement('div');
@@ -413,28 +438,26 @@ document.addEventListener('DOMContentLoaded', function () {
       lblCol.appendChild(s);
     });
     grid.appendChild(lblCol);
-    // 12 weeks back
-    for (let w = 11; w >= 0; w--) {
+
+    weeks.forEach(week => {
       const col = document.createElement('div');
       col.className = 'hm-col';
-      for (let d = 6; d >= 0; d--) {
-        const date = new Date(today);
-        date.setDate(today.getDate() - w * 7 - d);
-        const yr = date.getFullYear();
-        // ISO week
-        const tmp = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-        tmp.setUTCDate(tmp.getUTCDate() + 4 - (tmp.getUTCDay() || 7));
-        const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
-        const wk = Math.ceil((((tmp - yearStart) / 86400000) + 1) / 7);
-        const key = `${tmp.getUTCFullYear()}-W${String(wk).padStart(2,'0')}`;
-        const cnt = countMap[key] || 0;
+      week.forEach(date => {
         const cell = document.createElement('div');
-        cell.className = 'hm-cell' + (cnt === 0 ? '' : cnt / maxVal < .25 ? ' lv1' : cnt / maxVal < .5 ? ' lv2' : cnt / maxVal < .75 ? ' lv3' : ' lv4');
-        cell.title = `${date.toDateString()}: ${cnt} topic${cnt !== 1 ? 's' : ''}`;
+        if (date > todayLocal) {
+          cell.className = 'hm-cell';
+          cell.style.visibility = 'hidden';
+        } else {
+          const key = toKey(date);
+          const cnt = activityMap[key] || 0;
+          const lvl = cnt === 0 ? '' : cnt / maxVal < .25 ? ' lv1' : cnt / maxVal < .5 ? ' lv2' : cnt / maxVal < .75 ? ' lv3' : ' lv4';
+          cell.className = 'hm-cell' + lvl;
+          cell.title = `${key}: ${cnt} topic${cnt !== 1 ? 's' : ''}`;
+        }
         col.appendChild(cell);
-      }
+      });
       grid.appendChild(col);
-    }
+    });
     hm.appendChild(grid);
   }
 
